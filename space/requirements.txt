@@ -1,0 +1,2 @@
+# Space backend: aiohttp only (no audio processing, no Gradio, no HF libraries). Pinned; tested on runpod2.
+aiohttp==3.14.3

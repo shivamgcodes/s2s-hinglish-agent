@@ -1,0 +1,40 @@
+{
+ "_comment": "DESIGN.md 4.5 fixed token vectors. Token computed once with common/s2s_token.py (reference impl) on 2026-10-04 and frozen. Do not regenerate.",
+ "secret": "test-secret-0123456789-abcdefghijklmnop",
+ "payload": {
+  "aud": "ep-test",
+  "exp": 1759600120,
+  "iat": 1759600000,
+  "max_s": 300,
+  "mode": "lb",
+  "pairing": "g1",
+  "record_id": "food_01",
+  "seed": 1001,
+  "sid": "AAAAAAAAAAAAAAAAAAAAAA"
+ },
+ "payload_json": "{\"aud\":\"ep-test\",\"exp\":1759600120,\"iat\":1759600000,\"max_s\":300,\"mode\":\"lb\",\"pairing\":\"g1\",\"record_id\":\"food_01\",\"seed\":1001,\"sid\":\"AAAAAAAAAAAAAAAAAAAAAA\"}",
+ "token": "v1.eyJhdWQiOiJlcC10ZXN0IiwiZXhwIjoxNzU5NjAwMTIwLCJpYXQiOjE3NTk2MDAwMDAsIm1heF9zIjozMDAsIm1vZGUiOiJsYiIsInBhaXJpbmciOiJnMSIsInJlY29yZF9pZCI6ImZvb2RfMDEiLCJzZWVkIjoxMDAxLCJzaWQiOiJBQUFBQUFBQUFBQUFBQUFBQUFBQUFBIn0.RMiB6sicV8fK-tQBMaXlRDezZMC5CNUOCQQCRIy243k",
+ "negative": [
+  {
+   "name": "flipped_signature_char",
+   "token": "v1.eyJhdWQiOiJlcC10ZXN0IiwiZXhwIjoxNzU5NjAwMTIwLCJpYXQiOjE3NTk2MDAwMDAsIm1heF9zIjozMDAsIm1vZGUiOiJsYiIsInBhaXJpbmciOiJnMSIsInJlY29yZF9pZCI6ImZvb2RfMDEiLCJzZWVkIjoxMDAxLCJzaWQiOiJBQUFBQUFBQUFBQUFBQUFBQUFBQUFBIn0.AMiB6sicV8fK-tQBMaXlRDezZMC5CNUOCQQCRIy243k",
+   "mode": "lb",
+   "now": 1759600001,
+   "code": "bad_sig"
+  },
+  {
+   "name": "expired_now_exp_plus_11",
+   "token": "v1.eyJhdWQiOiJlcC10ZXN0IiwiZXhwIjoxNzU5NjAwMTIwLCJpYXQiOjE3NTk2MDAwMDAsIm1heF9zIjozMDAsIm1vZGUiOiJsYiIsInBhaXJpbmciOiJnMSIsInJlY29yZF9pZCI6ImZvb2RfMDEiLCJzZWVkIjoxMDAxLCJzaWQiOiJBQUFBQUFBQUFBQUFBQUFBQUFBQUFBIn0.RMiB6sicV8fK-tQBMaXlRDezZMC5CNUOCQQCRIy243k",
+   "mode": "lb",
+   "now": 1759600131,
+   "code": "expired"
+  },
+  {
+   "name": "wrong_mode_queue",
+   "token": "v1.eyJhdWQiOiJlcC10ZXN0IiwiZXhwIjoxNzU5NjAwMTIwLCJpYXQiOjE3NTk2MDAwMDAsIm1heF9zIjozMDAsIm1vZGUiOiJsYiIsInBhaXJpbmciOiJnMSIsInJlY29yZF9pZCI6ImZvb2RfMDEiLCJzZWVkIjoxMDAxLCJzaWQiOiJBQUFBQUFBQUFBQUFBQUFBQUFBQUFBIn0.RMiB6sicV8fK-tQBMaXlRDezZMC5CNUOCQQCRIy243k",
+   "mode": "queue",
+   "now": 1759600001,
+   "code": "mode"
+  }
+ ]
+}

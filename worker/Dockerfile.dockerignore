@@ -1,0 +1,14 @@
+# BuildKit reads this next to worker/Dockerfile (Dockerfile-specific ignore file). Build context = the repo root.
+# Whitelist: only common/{s2s_token.py,session.py,data/records_v4.json} and worker/ (minus the dirs below) are sent.
+*
+!common/s2s_token.py
+!common/session.py
+!common/data/records_v4.json
+!worker/
+worker/local/
+worker/tests/
+worker/tools/
+worker/build/
+**/__pycache__/
+**/*.pyc
+**/.venvs/

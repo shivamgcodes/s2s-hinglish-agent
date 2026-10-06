@@ -1,0 +1,15 @@
+{
+ "comment": "S2S serverless worker assets fetched at start (worker/fetch_assets.py) and uploaded by ops/upload_assets.sh. repo_path = path in the private HF model repo (and under the network-volume dir); dest = path under $S2S_ASSETS, or NEEDLE_LIB_DIR/. md5s are of the pod1 sources (2026-10-06).",
+ "adapter": "V4_A2 step 600 (pod1 /workspace/runs/V4_A2/checkpoints/checkpoint_000600/consolidated)",
+ "router": "Needle v2 (default, S2S_ROUTER=v2; D-ROUTER-V2 2026-10-06): needle_v2/tuned_full.cact = hinglish/needle_v2/finetune/tuned_full.cact (R_e15; pod1 /workspace/hinglish/needle_v2/finetune/tuned_full.cact). Needle N1 kept for rollback (S2S_ROUTER=n1): needle/tuned_full.cact (pod1 /workspace/hinglish/needle/tuned_full.cact = /root/needle/finetune/sweep/tuned_full.cact).",
+ "files": [
+  {"repo_path": "v4_adapter/config.json", "dest": "v4_adapter/config.json", "size": 1567, "md5": "6c4fab737a83e36bccf9564466393849", "required": true},
+  {"repo_path": "v4_adapter/lora.safetensors", "dest": "v4_adapter/lora.safetensors", "size": 387938848, "md5": "627bc77a2186e6600f27ce5657f2e038", "required": true},
+  {"repo_path": "needle/tuned_full.cact", "dest": "tuned_full.cact", "size": 63437076, "md5": "92ddd0d787388b07db831a7da6114aba", "required": true},
+  {"repo_path": "needle_v2/tuned_full.cact", "dest": "needle_v2/tuned_full.cact", "size": 63437076, "md5": "5361a65ba4703689e0ff1428a8f3dea4", "required": true},
+  {"repo_path": "needle/libneedle.so", "dest": "NEEDLE_LIB_DIR/libneedle.so", "size": 1295064, "md5": "679dc5705400ef795d98a37c6d738d8f", "required": false, "note": "cactus-needle downloads it itself at the first route call"}
+ ],
+ "also_uploaded": [
+  {"repo_path": "data/records_v4.json", "size": 587595, "md5": "c6c0cc7ad125c13ade07b181be082348", "note": "reference copy; the worker and the Space read common/data/records_v4.json from their repos"}
+ ]
+}

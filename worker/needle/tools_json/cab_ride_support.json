@@ -1,0 +1,115 @@
+[
+ {
+  "name": "cancel_ride",
+  "description": "Cancel a cab ride.",
+  "parameters": {
+   "type": "object",
+   "properties": {
+    "order_ref": {
+     "type": "string",
+     "description": "the ride as the customer referred to it, e.g. airport wali ride, current ride, pichhli ride, RD3938; omit if the customer did not name it"
+    }
+   }
+  }
+ },
+ {
+  "name": "change_pickup_location",
+  "description": "Change where the cab picks the customer up.",
+  "parameters": {
+   "type": "object",
+   "properties": {
+    "order_ref": {
+     "type": "string",
+     "description": "the ride as the customer referred to it, e.g. airport wali ride, current ride, pichhli ride, RD3938; omit if the customer did not name it"
+    },
+    "location": {
+     "type": "string",
+     "description": "the new pickup place as spoken, e.g. IGI Airport Terminal 3, Gate 4"
+    }
+   },
+   "required": [
+    "location"
+   ]
+  }
+ },
+ {
+  "name": "change_drop_location",
+  "description": "Change the destination where the cab drops the customer.",
+  "parameters": {
+   "type": "object",
+   "properties": {
+    "order_ref": {
+     "type": "string",
+     "description": "the ride as the customer referred to it, e.g. airport wali ride, current ride, pichhli ride, RD3938; omit if the customer did not name it"
+    },
+    "location": {
+     "type": "string",
+     "description": "the new drop place as spoken, e.g. DLF Cyber City, Phase 2, Gurgaon"
+    }
+   },
+   "required": [
+    "location"
+   ]
+  }
+ },
+ {
+  "name": "add_driver_instruction",
+  "description": "Add a note for the cab driver, e.g. wait outside the barrier, call on arrival.",
+  "parameters": {
+   "type": "object",
+   "properties": {
+    "order_ref": {
+     "type": "string",
+     "description": "the ride as the customer referred to it, e.g. airport wali ride, current ride, pichhli ride, RD3938; omit if the customer did not name it"
+    },
+    "instruction": {
+     "type": "string",
+     "description": "the instruction for the driver as spoken"
+    }
+   },
+   "required": [
+    "instruction"
+   ]
+  }
+ },
+ {
+  "name": "update_contact_number",
+  "description": "Change the phone number the driver should call for a ride.",
+  "parameters": {
+   "type": "object",
+   "properties": {
+    "order_ref": {
+     "type": "string",
+     "description": "the ride as the customer referred to it, e.g. airport wali ride, current ride, pichhli ride, RD3938; omit if the customer did not name it"
+    },
+    "phone": {
+     "type": "string",
+     "description": "the new phone number, 10 digits, e.g. 9800011085"
+    }
+   },
+   "required": [
+    "phone"
+   ]
+  }
+ },
+ {
+  "name": "request_refund",
+  "description": "Raise a refund request for a ride fare.",
+  "parameters": {
+   "type": "object",
+   "properties": {
+    "order_ref": {
+     "type": "string",
+     "description": "the ride as the customer referred to it, e.g. airport wali ride, current ride, pichhli ride, RD3938; omit if the customer did not name it"
+    },
+    "reason": {
+     "type": "string",
+     "description": "why the customer wants the refund, as spoken"
+    }
+   },
+   "required": [
+    "reason"
+   ]
+  }
+ }
+]

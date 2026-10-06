@@ -1,0 +1,10 @@
+# English words added once from trial OOV
+confuse
+confused
+inconvenient
+timings
+paused
+cannot
+urgently
+disturb
+doorbell

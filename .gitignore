@@ -1,0 +1,21 @@
+__pycache__/
+*.pyc
+.venv*/
+.venvs/
+node_modules/
+# built / staged artefacts (ops/stage_space.sh, run_local.sh setup)
+client/dist/
+space/static/
+space/common/
+space/tests/out_e2e/
+worker/build/
+# local runs and test output
+.local-run/
+.test-out/
+results/
+# never commit secrets
+.env
+.env.local
+*.local
+secrets.env
+*.pem

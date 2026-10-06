@@ -1,0 +1,88 @@
+[
+ {
+  "name": "cancel_subscription",
+  "description": "Cancel a subscription plan so it does not renew.",
+  "parameters": {
+   "type": "object",
+   "properties": {
+    "order_ref": {
+     "type": "string",
+     "description": "the subscription plan or account as the customer referred to it, e.g. Premium Monthly plan, mera plan, purana plan, AC5746; omit if the customer did not name it"
+    }
+   }
+  }
+ },
+ {
+  "name": "pause_subscription",
+  "description": "Pause a subscription plan for some time.",
+  "parameters": {
+   "type": "object",
+   "properties": {
+    "order_ref": {
+     "type": "string",
+     "description": "the subscription plan or account as the customer referred to it, e.g. Premium Monthly plan, mera plan, purana plan, AC5746; omit if the customer did not name it"
+    }
+   }
+  }
+ },
+ {
+  "name": "update_contact_number",
+  "description": "Change the registered phone number on the account.",
+  "parameters": {
+   "type": "object",
+   "properties": {
+    "order_ref": {
+     "type": "string",
+     "description": "the subscription plan or account as the customer referred to it, e.g. Premium Monthly plan, mera plan, purana plan, AC5746; omit if the customer did not name it"
+    },
+    "phone": {
+     "type": "string",
+     "description": "the new phone number, 10 digits, e.g. 9800011085"
+    }
+   },
+   "required": [
+    "phone"
+   ]
+  }
+ },
+ {
+  "name": "update_email_address",
+  "description": "Change the registered email address to a new one.",
+  "parameters": {
+   "type": "object",
+   "properties": {
+    "order_ref": {
+     "type": "string",
+     "description": "the subscription plan or account as the customer referred to it, e.g. Premium Monthly plan, mera plan, purana plan, AC5746; omit if the customer did not name it"
+    },
+    "email": {
+     "type": "string",
+     "description": "the new email address, written as name@domain.com"
+    }
+   },
+   "required": [
+    "email"
+   ]
+  }
+ },
+ {
+  "name": "request_refund",
+  "description": "Raise a refund request for a subscription charge.",
+  "parameters": {
+   "type": "object",
+   "properties": {
+    "order_ref": {
+     "type": "string",
+     "description": "the subscription plan or account as the customer referred to it, e.g. Premium Monthly plan, mera plan, purana plan, AC5746; omit if the customer did not name it"
+    },
+    "reason": {
+     "type": "string",
+     "description": "why the customer wants the refund, as spoken"
+    }
+   },
+   "required": [
+    "reason"
+   ]
+  }
+ }
+]

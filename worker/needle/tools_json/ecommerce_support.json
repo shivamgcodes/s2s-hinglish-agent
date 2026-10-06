@@ -1,0 +1,95 @@
+[
+ {
+  "name": "cancel_order",
+  "description": "Cancel an order.",
+  "parameters": {
+   "type": "object",
+   "properties": {
+    "order_ref": {
+     "type": "string",
+     "description": "the order as the customer referred to it, e.g. headphones wala, Samsung phone, purana order, my order, EC2469; omit if the customer did not name it"
+    }
+   }
+  }
+ },
+ {
+  "name": "change_delivery_address",
+  "description": "Change the delivery address of an order to a new address.",
+  "parameters": {
+   "type": "object",
+   "properties": {
+    "order_ref": {
+     "type": "string",
+     "description": "the order as the customer referred to it, e.g. headphones wala, Samsung phone, purana order, my order, EC2469; omit if the customer did not name it"
+    },
+    "address": {
+     "type": "string",
+     "description": "the new address as spoken, e.g. Flat 204, Sector 15, Gurgaon"
+    }
+   },
+   "required": [
+    "address"
+   ]
+  }
+ },
+ {
+  "name": "add_delivery_instruction",
+  "description": "Add a note for the delivery person, e.g. leave with security, call on arrival, do not ring the bell.",
+  "parameters": {
+   "type": "object",
+   "properties": {
+    "order_ref": {
+     "type": "string",
+     "description": "the order as the customer referred to it, e.g. headphones wala, Samsung phone, purana order, my order, EC2469; omit if the customer did not name it"
+    },
+    "instruction": {
+     "type": "string",
+     "description": "the instruction for the delivery person as spoken"
+    }
+   },
+   "required": [
+    "instruction"
+   ]
+  }
+ },
+ {
+  "name": "update_contact_number",
+  "description": "Change the contact phone number for an order's delivery.",
+  "parameters": {
+   "type": "object",
+   "properties": {
+    "order_ref": {
+     "type": "string",
+     "description": "the order as the customer referred to it, e.g. headphones wala, Samsung phone, purana order, my order, EC2469; omit if the customer did not name it"
+    },
+    "phone": {
+     "type": "string",
+     "description": "the new phone number, 10 digits, e.g. 9800011085"
+    }
+   },
+   "required": [
+    "phone"
+   ]
+  }
+ },
+ {
+  "name": "request_refund",
+  "description": "Raise a refund request for an order.",
+  "parameters": {
+   "type": "object",
+   "properties": {
+    "order_ref": {
+     "type": "string",
+     "description": "the order as the customer referred to it, e.g. headphones wala, Samsung phone, purana order, my order, EC2469; omit if the customer did not name it"
+    },
+    "reason": {
+     "type": "string",
+     "description": "why the customer wants the refund, as spoken"
+    }
+   },
+   "required": [
+    "reason"
+   ]
+  }
+ }
+]
