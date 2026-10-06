@@ -277,7 +277,7 @@ export const MetricsPanel: FC<{ metricsEvent?: Metrics | null; className?: strin
 };
 
 // ---------------------------------------------------------------------------------------------- samples
-const N_PLACEHOLDERS = 5;
+const N_PLACEHOLDERS = 3;
 export const SamplesPanel: FC<{ className?: string }> = ({ className }) => {
   const [items, setItems] = useState<SampleItem[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -288,7 +288,7 @@ export const SamplesPanel: FC<{ className?: string }> = ({ className }) => {
   return (
     <Card title="Handpicked samples" testId="samples-panel" className={className}
       right={<span className="text-xs text-gray-400">{items === null ? "loading…" : `${n} file${n === 1 ? "" : "s"}`}</span>}>
-      <p className="text-[11px] text-gray-400 mb-2">Pre-rendered stereo recordings of the fine-tuned agent (chosen by hand, not a random sample).</p>
+      <p className="text-[11px] text-gray-400 mb-2">Chosen by hand, not a random sample. Agent = fine-tuned model (V4_A2 step 600), customer = scripted TTS (IndicF5); test-harness recording, not a live call. Stereo: left = agent, right = customer.</p>
       <ul className="flex flex-col gap-2">
         {(items ?? []).map(s => (
           <li key={s.url} data-testid="sample-item" className="text-xs">

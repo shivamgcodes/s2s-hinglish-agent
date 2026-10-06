@@ -630,8 +630,10 @@ class SpaceApp:
                 notes = json.loads((SAMPLES / "notes.json").read_text())
             except Exception:
                 notes = {}
-        out = [{"name": p.stem, "url": f"/samples/{p.name}", "note": notes.get(p.stem, notes.get(p.name, ""))}
-               for p in sorted(q for q in SAMPLES.iterdir() if q.suffix.lower() in SAMPLE_EXT)] if SAMPLES.is_dir() else []
+        files = sorted(q for q in SAMPLES.iterdir() if q.suffix.lower() in SAMPLE_EXT) if SAMPLES.is_dir() else []
+        order = {k: i for i, k in enumerate(notes)}           # notes.json key order = display order; others after, by name
+        files.sort(key=lambda p: order.get(p.stem, order.get(p.name, len(order))))
+        out = [{"name": p.stem, "url": f"/samples/{p.name}", "note": notes.get(p.stem, notes.get(p.name, ""))} for p in files]
         return web.json_response(out)
 
     async def handle_root(self, request):

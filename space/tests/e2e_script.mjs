@@ -35,14 +35,16 @@ async function endCall(ctx, page) {
   await ctx.close();
 }
 
-// ---- 0. defaults (2026-10-06): food_23 g1 preselected, research-demo disclaimer
+// ---- 0. defaults (2026-10-06): food_23 g1 preselected, research-demo disclaimer, 3 handpicked samples in order
 {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   await ctx.grantPermissions(["microphone"], { origin: base });
   const page = await ctx.newPage();
   page.on("pageerror", e => res.console_errors.push("pageerror: " + String(e).slice(0, 300)));
   await page.goto(base, { waitUntil: "networkidle" });
-  await page.getByTestId("samples-panel").waitFor({ timeout: 15000 });
+  await page.getByTestId("sample-item").first().waitFor({ timeout: 15000 });
+  res.checks.samples = await page.getByTestId("sample-item").locator("span.font-mono").allInnerTexts();
+  res.checks.n_placeholders = await page.getByTestId("sample-placeholder").count();
   res.checks.default_agent_type = await page.getByTestId("sel-agent-type").inputValue();
   res.checks.default_record = await page.getByTestId("sel-record").inputValue();
   const dis = await page.getByTestId("disclaimer").first().innerText();
@@ -129,6 +131,7 @@ fs.writeFileSync(`${out}/script_result.json`, JSON.stringify(res, null, 1));
 console.log(JSON.stringify(res, null, 1));
 const c = res.checks;
 const ok = c.default_agent_type === "food_delivery_support" && c.default_record === "food_23" && c.disclaimer_v4 &&
+  c.samples.join(",") === "food_23_g1,air_27_g4,food_07_g3" && c.n_placeholders === 0 &&
   c.disclaimer_compound && c.default_call_note && c.default_split_badge_absent && c.desktop_same_row_right && c.n_customer >= 3 && c.n_agent >= 3 && c.tag_check >= 1 && c.tag_write >= 1 &&
   c.write_shown && c.split_badge_removed && c.n_next === 1 && c.toggle_present && c.toggle_off_api &&
   c.indicator_off_after_toggle && c.toggle_back_ticker && c.narrow_stacked && c.narrow_no_hscroll &&
