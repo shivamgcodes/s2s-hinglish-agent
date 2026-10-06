@@ -57,6 +57,8 @@ type Props = {
   setStockVoicePrompt: (v: string) => void;
 };
 
+const DEFAULT_RECORD = "food_23";
+
 export const SessionSetup: FC<Props> = ({
   onStart, onStartStock, startError, showMicrophoneAccessMessage,
   stockTextPrompt, setStockTextPrompt, stockVoicePrompt, setStockVoicePrompt,
@@ -81,9 +83,10 @@ export const SessionSetup: FC<Props> = ({
   useEffect(() => {
     fetchRecords().then(rs => {
       setRecords(rs);
-      if (rs.length) {
-        setAgentType(rs[0].agent_type);
-        setRecordId(rs[0].record_id);
+      if (rs.length) {   // default: food_23 (g1), the best demo-type call on the V4 test set (V4_A2, seed 1001)
+        const first = rs.find(r => r.record_id === DEFAULT_RECORD) ?? rs[0];
+        setAgentType(first.agent_type);
+        setRecordId(first.record_id);
       }
     }).catch(e => setLoadErr(String(e?.message ?? e)));
   }, []);

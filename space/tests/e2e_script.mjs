@@ -35,6 +35,30 @@ async function endCall(ctx, page) {
   await ctx.close();
 }
 
+// ---- 0. defaults (2026-10-06): food_23 g1 preselected, research-demo disclaimer
+{
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  await ctx.grantPermissions(["microphone"], { origin: base });
+  const page = await ctx.newPage();
+  page.on("pageerror", e => res.console_errors.push("pageerror: " + String(e).slice(0, 300)));
+  await page.goto(base, { waitUntil: "networkidle" });
+  await page.getByTestId("samples-panel").waitFor({ timeout: 15000 });
+  res.checks.default_agent_type = await page.getByTestId("sel-agent-type").inputValue();
+  res.checks.default_record = await page.getByTestId("sel-record").inputValue();
+  const dis = await page.getByTestId("disclaimer").first().innerText();
+  res.checks.disclaimer_v4 = dis.includes("V4_A2 step 600") && dis.includes("30 held-out calls") && !dis.includes("step 200");
+  res.checks.disclaimer_compound = dis.includes("compound calls");
+  await page.screenshot({ path: `${out}/defaults_setup.png`, fullPage: true });
+  await page.getByTestId("btn-connect").click();                     // connect with the defaults (food_23, g1)
+  await page.getByText("Live: speak as the customer.").waitFor({ timeout: 120000 });
+  await page.getByTestId("script-panel").getByTestId("script-customer").first().waitFor({ timeout: 15000 });
+  res.checks.default_call_note = (await page.getByTestId("script-note").innerText()).includes("food_23_g1");
+  res.checks.default_split_badge_absent = (await page.getByTestId("script-split").count()) === 0;
+  await page.waitForTimeout(6000);
+  await page.screenshot({ path: `${out}/defaults_call.png`, fullPage: true });
+  await endCall(ctx, page);
+}
+
 // ---- 1. desktop
 {
   await fetch(base + "/api/filler?mode=ticker", { method: "POST" });
@@ -50,7 +74,7 @@ async function endCall(ctx, page) {
   res.checks.tag_check = await panel.getByTestId("script-tag-check_line").count();
   res.checks.tag_write = await panel.getByTestId("script-tag-confirm_write").count();
   res.checks.write_shown = (await panel.innerText()).includes("change_delivery_address(");
-  res.checks.split_badge = await page.getByTestId("script-split").innerText();
+  res.checks.split_badge_removed = (await page.getByTestId("script-split").count()) === 0;   // 2026-10-06: badge removed
   res.checks.note = (await page.getByTestId("script-note").innerText()).slice(0, 200);
   res.checks.n_next = await panel.locator("[data-next='1']").count();
   await page.waitForTimeout(12000);                                  // let the mock text stream run
@@ -104,8 +128,9 @@ await browser.close();
 fs.writeFileSync(`${out}/script_result.json`, JSON.stringify(res, null, 1));
 console.log(JSON.stringify(res, null, 1));
 const c = res.checks;
-const ok = c.desktop_same_row_right && c.n_customer >= 3 && c.n_agent >= 3 && c.tag_check >= 1 && c.tag_write >= 1 &&
-  c.write_shown && c.split_badge === "train" && c.n_next === 1 && c.toggle_present && c.toggle_off_api &&
+const ok = c.default_agent_type === "food_delivery_support" && c.default_record === "food_23" && c.disclaimer_v4 &&
+  c.disclaimer_compound && c.default_call_note && c.default_split_badge_absent && c.desktop_same_row_right && c.n_customer >= 3 && c.n_agent >= 3 && c.tag_check >= 1 && c.tag_write >= 1 &&
+  c.write_shown && c.split_badge_removed && c.n_next === 1 && c.toggle_present && c.toggle_off_api &&
   c.indicator_off_after_toggle && c.toggle_back_ticker && c.narrow_stacked && c.narrow_no_hscroll &&
   /No script for this pairing/.test(c.none_text ?? "") && res.console_errors.length === 0;
 console.log(ok ? "SCRIPT UI OK" : "SCRIPT UI FAILED");

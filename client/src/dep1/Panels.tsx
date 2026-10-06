@@ -31,7 +31,8 @@ export const Card: FC<{ title: string; right?: React.ReactNode; className?: stri
 export const Disclaimer: FC<{ className?: string }> = ({ className }) => (
   <p data-testid="disclaimer" className={`text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded px-3 py-2 ${className ?? ""}`}>
     Research demo. Hinglish (Hindi-English code-switched) agent: PersonaPlex 7B with a LoRA fine-tuned on synthetic
-    call data only, early checkpoint (V3, step 200), evaluated on a 12-call held-out test set. Records, customers and
+    call data only (V4 adapter, V4_A2 step 600), evaluated on a V4 test set of 30 held-out calls. The model tends to
+    misbehave or get confused on compound calls (calls with multiple questions and commands). Records, customers and
     order IDs are synthetic. Actions run against stub tools on an in-memory copy of the record. Single session; about
     3.5 min of conversation per session (context limit; the session panel shows this session&apos;s limit).
   </p>
@@ -301,7 +302,7 @@ export const SamplesPanel: FC<{ className?: string }> = ({ className }) => {
           </li>
         ))}
       </ul>
-      {items !== null && n === 0 && <p className="text-[11px] text-gray-400 mt-2">Drop stereo .wav files into <span className="font-mono">space/samples/</span> before pushing the Space{err ? ` (/api/samples: ${err})` : ""}.</p>}
+      {items !== null && n === 0 && <p className="text-[11px] text-gray-400 mt-2">Drop stereo .wav/.mp3 files (+ notes.json) into <span className="font-mono">space/samples/</span> before pushing the Space{err ? ` (/api/samples: ${err})` : ""}.</p>}
     </Card>
   );
 };

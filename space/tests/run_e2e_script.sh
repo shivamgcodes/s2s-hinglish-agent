@@ -20,7 +20,7 @@ F=$!
 cd $R/space
 env PORT=18870 HOST=127.0.0.1 S2S_MODE=lb RUNPOD_ENDPOINT_ID=ep-test RUNPOD_API_KEY=test-key S2S_SESSION_SECRET=$SECRET \
   S2S_AUDIENCE=ep-test RUNPOD_LB_URL=http://127.0.0.1:$((B+80)) RUNPOD_API_URL=http://127.0.0.1:$((B+81))/v2/ep-test \
-  MAX_CONCURRENT_CALLS=2 RATE_PER_IP_PER_HOUR=100 KEEPALIVE_S=3 WAKE_POLL_S=0.5 S2S_PASSCODE= \
+  MAX_CONCURRENT_CALLS=2 RATE_PER_IP_PER_HOUR=100 KEEPALIVE_S=3 WAKE_POLL_S=0.5 S2S_PASSCODE= S2S_STATIC=${S2S_STATIC:-$R/client/dist} \
   $SP -u -m app.main > "$OUT/space.log" 2>&1 &
 S=$!
 trap 'kill $W $F $S 2>/dev/null; pkill -f "s2s-script-$B" 2>/dev/null' EXIT

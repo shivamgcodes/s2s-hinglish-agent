@@ -65,6 +65,7 @@ else:
 log = logging.getLogger("space")
 STATIC = Path(os.environ.get("S2S_STATIC", str(SPACE / "static")))
 SAMPLES = Path(os.environ.get("S2S_SAMPLES", str(SPACE / "samples")))
+SAMPLE_EXT = {".wav", ".mp3", ".ogg", ".opus"}   # stereo recordings in space/samples (notes.json: name -> one-line note)
 PLACEHOLDER = """<!doctype html><html><head><meta charset="utf-8"><title>S2S Space</title></head>
 <body style="font-family:sans-serif;max-width:40em;margin:2em auto"><h1>S2S Space backend</h1>
 <p>The web client is not built into <code>space/static</code> yet (ops/build_client.sh).</p>
@@ -630,7 +631,7 @@ class SpaceApp:
             except Exception:
                 notes = {}
         out = [{"name": p.stem, "url": f"/samples/{p.name}", "note": notes.get(p.stem, notes.get(p.name, ""))}
-               for p in sorted(SAMPLES.glob("*.wav"))] if SAMPLES.is_dir() else []
+               for p in sorted(q for q in SAMPLES.iterdir() if q.suffix.lower() in SAMPLE_EXT)] if SAMPLES.is_dir() else []
         return web.json_response(out)
 
     async def handle_root(self, request):

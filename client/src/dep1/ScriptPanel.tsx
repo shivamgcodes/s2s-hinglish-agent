@@ -14,12 +14,6 @@ const SPLIT_TEXT: Record<string, string> = {
   test: "test split (held-out call): never trained on",
   test_scenario: "held-out test scenario: never trained on",
 };
-const SPLIT_BADGE: Record<string, string> = {
-  train: "bg-gray-100 text-gray-700 border-gray-300",
-  val: "bg-sky-50 text-sky-800 border-sky-200",
-  test: "bg-violet-50 text-violet-800 border-violet-200",
-  test_scenario: "bg-violet-50 text-violet-800 border-violet-200",
-};
 const TAG_TEXT: Record<string, [string, string]> = {
   check_line: ["check", "the line that triggers the router (Needle)"],
   confirm_write: ["write", "the agent confirms the change back"],
@@ -116,7 +110,6 @@ export const ScriptPanel: FC<{ recordId?: string | null; pairing?: string | null
   return (
     <Card title="Script: what to say" testId="script-panel" className={className}
       right={<span className="text-xs text-gray-500 flex items-center gap-2">
-        {script?.available && <span data-testid="script-split" className={`border rounded px-1.5 py-0.5 text-[10px] ${SPLIT_BADGE[split] ?? ""}`}>{split === "test_scenario" ? "test" : split}</span>}
         <label><input type="checkbox" checked={follow} onChange={e => setFollow(e.target.checked)} /> follow</label>
       </span>}>
       {!recordId && <p className="text-xs text-gray-500">No script for a stock session (no record).</p>}
