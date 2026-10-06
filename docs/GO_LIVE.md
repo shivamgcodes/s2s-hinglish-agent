@@ -37,6 +37,14 @@ worker start: fully offline. No HF token, no Model field, no network volume.
 > - **Worst case per day:** limited by the Space brakes. With `MAX_CALLS_PER_DAY=100` it is about $15; set it lower
 >   (for example 30) while testing.
 
+## UPDATE 2026-10-07 (D-MONOREPO)
+- **One repo:** everything is in the private repo `github.com/shivamgcodes/s2s-hinglish-agent`. `s2s-worker` and
+  `s2s-space` are retired, but they still exist until you delete them. Appendix B has the new update flow.
+- **New image:** `docker.io/shivamgupta579/s2s-worker:0c251b3e68c3` (= `:latest`), built by the monorepo's workflow.
+  The endpoint stays on `:3957130716eb` because the worker code is unchanged.
+- **Space:** HF commit 8b2a3fc6 has default record food_23 (g1), no split badge, the V4 disclaimer and 3 handpicked
+  samples.
+
 ## UPDATE 2026-10-06 (D-LOCAL, D-SCRIPT-PANEL)
 - **Script panel:** "Script: what to say", to the right of the live text, shows the expected V4 conversation for the
   record + pairing, with its train/val/test split. Route: `GET /api/script/{id}?pairing=`; data:

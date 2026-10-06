@@ -1020,3 +1020,60 @@ RunPod or the HF Space.
   - **Observation, not investigated:** in this live call the agent produced no text in the ~11 s after "Live", with
     Chrome's synthetic mic. The local GPU run with the same fake mic greeted at 1.4 s, and the relay code is
     unchanged for lb mode. Recheck with a real voice.
+
+## D-MONOREPO 2026-10-06/07 (user: "is it possible that we make these two repos into one?? ... yes, please do that.")
+- **One private repo:** https://github.com/shivamgcodes/s2s-hinglish-agent replaces `s2s-worker` + `s2s-space`. Both old
+  repos are untouched; the user deletes them after checking.
+  - Layout: `worker/ space/ client/ (full source) common/ ops/ tests/ docs/` (DECISIONS, GO_LIVE, DESIGN, the old
+    README as `SERVERLESS_NOTES.md`), plus `run_local.sh`, `run_all_cpu_tests.sh` and `.github/workflows/build-worker.yml`.
+  - Not committed: `results/`, `client/dist`, venvs, `client/.env.local` (`client/.env.production` carries the same
+    non-secret `VITE_QUEUE_API_PATH`).
+  - **No top-level LICENSE:** the old repos had none either. Open for the user.
+- **This folder stays the working source.** `ops/export_monorepo.sh <checkout>` exports it. Path mapping: `docs/`, the
+  root README from `ops/monorepo/README.md`, `.gitignore` from `ops/monorepo/gitignore`. Moves inside this folder:
+  - `worker/github/build.yml` → `.github/workflows/build-worker.yml`;
+  - `worker/run_local.sh` → `run_local.sh`;
+  - `tests/run_all_cpu_pod1.sh` → `run_all_cpu_tests.sh`.
+- **Scripts:**
+  - `ops/make_repos.sh` was removed and replaced by:
+    - `ops/stage_space.sh` (Space tree = `space/` minus tests/static/common, + 4 `common/` files, + `client/dist`);
+    - `ops/scan_secrets.sh` (token shapes, real secret values, the passcode at any length, forbidden files, > 50 MB);
+    - `ops/export_monorepo.sh`.
+  - `ops/push_space.sh`:
+    - stages from the checkout by default (`--out`, `--build-client`, `--dry-run`), or `--dir` as before;
+    - scans before uploading.
+  - `run_local.sh` uses `./space` + `./client/dist`. `setup` builds the client (needs Node ≥ 18), or set `S2S_STATIC`.
+  - `run_all_cpu_tests.sh`:
+    - runs from any checkout and forces `S2S_ROOT` to that checkout;
+    - takes the venvs from env;
+    - reports SKIP on a missing prerequisite.
+  - The e2e runners default `R` to the repo root.
+  - CI: context = repo root, `-f worker/Dockerfile`. BuildKit uses `worker/Dockerfile.dockerignore`, and CI also copies
+    it to `.dockerignore`. `check_dockerfile.py` now also asserts that run_local/docs/ops/tests/.github are excluded.
+- **Verified (pod1, fresh clone of the pushed commits):**
+  - all 10 CPU suites rc=0;
+  - `npm ci && npm run build` reproduced the deployed bundle hashes (`index-C0V3REQG.js` / `index-BPPa1AKv.css`);
+  - the staged Space tree for commit 0c251b3 was byte-identical to s2s-space 15a9cc3 (= the live Space files).
+- **CI:** build-worker-image run 37510146032 succeeded in 26.5 min (PersonaPlex download 4 min, crane append + push
+  6 min). New image `docker.io/shivamgupta579/s2s-worker:0c251b3e68c3`, 23.47 GB, digest `sha256:b2be4a50…`.
+  - `:latest` moved to it.
+  - **RunPod not repointed:** the template stays on `:3957130716eb`. The worker code is unchanged; only comments in
+    `worker/Dockerfile` and the dockerignore changed.
+- **Page changes (user, via the orchestrator), pushed to the Space (HF commit 8b2a3fc6):**
+  - default record food_23 (pairing g1);
+  - the script-panel split badge is removed;
+  - the disclaimer names V4_A2 step 600 and the V4 test set of 30 held-out calls, and notes compound-call confusion;
+  - 3 handpicked samples, in order: food_23_g1, air_27_g4, food_07_g3. They are V4_A2 seed 1001 test-harness stereo
+    recordings as 96 kbps mp3, with `space/samples/notes.json` labels; key order = display order (`/api/samples`).
+  - Playwright: SCRIPT UI OK and TICKER UI OK (mock); the live page shows food_23, the 3 samples, no placeholders and
+    the new disclaimer.
+  - Screenshots: `results/monorepo_2026-10-07/`.
+  - **Still stale:** the page subtitle says "V3 Hinglish LoRA".
+- **Links:**
+  - both HF model cards now link the monorepo (HF commits e59d4b04 LoRA, 883a33e2 router; local copies updated);
+  - `writeup/HF_MODEL_CARDS_POINTERS.md` and `deployment_quirks.md` §7b record the merge.
+- **Not done (blocked by the permission classifier):** switching the image build's assets from the private
+  `s2s-v4-assets` to the two model repos, including uploading Needle N1 to `n1/` of the router repo. The build still
+  uses `s2s-v4-assets`, so do not delete it.
+- **Pod1 mirror skipped:** `/workspace` is at quota and must not be written. The pod1 copies are `/root/s2s-hinglish-agent`
+  (clone) and `/root/space-tree`.
