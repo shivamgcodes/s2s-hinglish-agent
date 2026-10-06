@@ -63,6 +63,10 @@ python3 packages/selftest.py         # just the shared packages (stdlib only)
 bash research/smoke_test.sh          # just research/: parses everything + the pure-python unit tests
 ```
 
+## Credits
+
+The models, datasets, voices and code this project builds on, with links and licences, are listed in [ATTRIBUTION.md](ATTRIBUTION.md).
+
 ## License
 
 There is no top-level license file yet. One will be added before release. Some parts carry their own licenses:

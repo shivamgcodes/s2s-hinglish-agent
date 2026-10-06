@@ -10,7 +10,7 @@
 #   deploy/     worker/, space/, client/, common/, ops/, tests/, run_local.sh, run_all_cpu_tests.sh
 #   .github/    CI (builds the worker image from deploy/ + packages/ only)
 #   docs/       <- DECISIONS.md, GO_LIVE.md, DESIGN.md, README.md (as docs/SERVERLESS_NOTES.md), deploy/ops/monorepo/docs_README.md
-#   README.md   <- deploy/ops/monorepo/README.md;  .gitignore <- deploy/ops/monorepo/gitignore
+#   README.md   <- deploy/ops/monorepo/README.md;  ATTRIBUTION.md <- deploy/ops/monorepo/ATTRIBUTION.md;  .gitignore <- deploy/ops/monorepo/gitignore
 # Left out: results/ (raw outputs), .local-run/, .test-out/, venvs, node_modules/, client/dist (built by
 # ops/stage_space.sh --build / run_local.sh setup / CI), client/.env.local (client/.env.production has the same
 # non-secret value), space/static + space/common (staging copies), space/tests/out_e2e, caches, deploy/ops/monorepo.
@@ -34,6 +34,7 @@ cp "$ROOT/DECISIONS.md" "$ROOT/GO_LIVE.md" "$ROOT/DESIGN.md" "$OUT/docs/"
 cp "$ROOT/README.md" "$OUT/docs/SERVERLESS_NOTES.md"
 cp "$ROOT/deploy/ops/monorepo/docs_README.md" "$OUT/docs/README.md"
 cp "$ROOT/deploy/ops/monorepo/README.md" "$OUT/README.md"
+cp "$ROOT/deploy/ops/monorepo/ATTRIBUTION.md" "$OUT/ATTRIBUTION.md"
 cp "$ROOT/deploy/ops/monorepo/gitignore" "$OUT/.gitignore"
 chmod u+w "$OUT/docs/DESIGN.md"
 bash "$ROOT/deploy/ops/scan_secrets.sh" "$OUT"
