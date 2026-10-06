@@ -1,0 +1,26 @@
+# pip install "git+https://github.com/shivamgcodes/s2s-hinglish-agent#subdirectory=packages/needle_router"
+# (D-LEAN-HF 2026-10-07: the HF model repo shivamgupta/needle-hinglish-router-v2 holds only weights + examples + card;
+# this package is the one copy of the router code. The deploy worker and research/ use the same files in place.)
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "needle-router"
+version = "2.0.0"
+description = "Needle v2 Hinglish action router (+ the Needle N1 helpers it uses): transcript + record -> resolved tool calls"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["cactus-needle==3.0.6"]
+
+[project.optional-dependencies]
+hub = ["huggingface_hub>=0.30"]
+
+[tool.setuptools]
+# The modules are flat (bare `import router_v2`, `import build_data`, ...), as in the code of record: the package
+# directory IS this folder, and needle_router/__init__.py puts n1/, v2/ and numconv/ on sys.path.
+package-dir = {"needle_router" = "."}
+packages = ["needle_router", "needle_router.n1", "needle_router.v2", "needle_router.numconv"]
+
+[tool.setuptools.package-data]
+"needle_router.n1" = ["romanise_lexicon.json", "tools_json/*.json", "src/records.json"]

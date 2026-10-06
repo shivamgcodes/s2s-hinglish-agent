@@ -1,0 +1,3 @@
+dest_path	source	md5 (dest)	note
+research/inference/personaplex_lora/requirements.txt	laptop:<S2S>/hinglish/hf_model_repos/personaplex-hinglish-v4-lora/requirements.txt	30f37d33c0a2a40adb00e79b4de524a5	verbatim
+research/inference/personaplex_lora/run_offline.py	laptop:<S2S>/hinglish/hf_model_repos/personaplex-hinglish-v4-lora/run_offline.py	965938801e12c58082e220a9c46bf2ec	modified (D-LEAN-HF: imports the pip package, downloads weights/examples via hf_hub_download): sys.path shim: packages/personaplex_lora + packages/personaplex_lora/infer when present (monorepo), else same dir (HF layout)

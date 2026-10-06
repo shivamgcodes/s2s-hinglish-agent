@@ -1,0 +1,25 @@
+dest_path	source	source_md5	note
+research/eval_harness/V1_COMPARISON.md	runpod:/workspace/hinglish/tests/V1_COMPARISON.md	d7566e0130b778dd4e456b31ad02198f	verbatim
+research/eval_harness/V4_COMPARISON.md	runpod:/workspace/hinglish/tests/V4_COMPARISON.md	250ea766e603dca57dc5df8a9ab87227	verbatim
+research/eval_harness/V4_EVAL.md	runpod:/workspace/hinglish/tests/V4_EVAL.md	af4bfe13bb3052f28012cc2fee9fcaf6	verbatim
+research/eval_harness/V4_RERANK.md	runpod:/workspace/hinglish/tests/V4_RERANK.md	36dbf2ed78c60d6d84d4a572958bca94	verbatim
+research/eval_harness/VAD_GATING.md	runpod:/workspace/hinglish/tests/VAD_GATING.md	4802d4e0476c2f15e44d0e1fa3eb5b79	modified: personal laptop path replaced by <laptop>/
+research/eval_harness/asr_pass.py	runpod:/workspace/hinglish/tests/asr_pass.py	8d6ebbff5c81ec45bb577c0fb63092e2	verbatim
+research/eval_harness/driver.py	runpod:/workspace/hinglish/tests/driver.py	639a968b5f80ac57d780e3c519ffceed	modified: merge hook <- env PP_MERGE_LORA_HOOK or packages/personaplex_lora/trainer/merge_lora.py (was /workspace/hinglish/trainer/merge_lora.py; if missing driver silently falls back to its generic merge)
+research/eval_harness/fake_data.py	runpod:/workspace/hinglish/tests/fake_data.py	981e8843070d8d10f202bc3e056c40cd	verbatim
+research/eval_harness/judge.py	runpod:/workspace/hinglish/tests/judge.py	2527930a610c721eff70d49949fe6b79	modified: code path: research/data_gen/gen (env HINGLISH_GEN_DIR) + packages/hinglish_text (was /workspace/hinglish/gen)
+research/eval_harness/listen_go.sh	runpod:/workspace/hinglish/tests/listen_go.sh	918feb0a198edbc3f47ade17737ae3de	verbatim
+research/eval_harness/make_inputs.py	runpod:/workspace/hinglish/tests/make_inputs.py	27bf21addb4c5bdeb1a37389d2a9e071	verbatim
+research/eval_harness/run_tests.py	runpod:/workspace/hinglish/tests/run_tests.py	26bea053e9f96dcdc93a9c67f013b848	modified: driver.py located next to this file (was TESTS = HINGLISH_ROOT/tests)
+research/eval_harness/run_tests.sh	runpod:/workspace/hinglish/tests/run_tests.sh	2bcaddb0dfc0b16bdac8dd55478dff56	verbatim
+research/eval_harness/score.py	runpod:/workspace/hinglish/tests/score.py	e2eefd18f17590c14272df4a1124198c	modified: code path: research/data_gen/gen + packages/hinglish_text (was /workspace/hinglish/gen); error message
+research/eval_harness/setup_container.sh	runpod:/workspace/hinglish/tests/setup_container.sh	0a4f678b8041c82ccb0d483f7e46dab1	verbatim
+research/eval_harness/tcommon.py	runpod:/workspace/hinglish/tests/tcommon.py	abb9ef90f9f617053b5d9394fbfa75f8	modified: ROOT<-env HINGLISH_ROOT; ascii_prompt/_ASCII_MAP now imported from packages/personaplex_lora/role_prompt.py (output-identical; map literal differs: pod ' '->' ' no-op vs package NBSP->' ', NFKD folds NBSP anyway)
+research/eval_harness/test_vad_gate.py	runpod:/workspace/hinglish/tests/test_vad_gate.py	39e59b413e6c21d2293e7be498757be5	verbatim
+research/eval_harness/trelis_args.json	runpod:/workspace/hinglish/tests/trelis_args.json	3b0e5df05ed4f14d1770e02aa6e5f50e	verbatim
+research/eval_harness/trelis_pass.py	runpod:/workspace/hinglish/tests/trelis_pass.py	84ab76d53b64c8e9a276af47b2839c0d	modified: code path: research/audio (was /workspace/hinglish/audio)
+research/eval_harness/trelis_tx.py	runpod:/workspace/hinglish/tests/trelis_tx.py	ce01d82cf0098f262225c1ee2cad5b41	modified: wav path root -> $HINGLISH_ROOT (also used by asr_cer/cer_study/trelis)
+research/eval_harness/v4_comparison.py	runpod:/workspace/hinglish/tests/v4_comparison.py	a20cf9b8f52c18cad451931e9530a247	modified: H<-env HINGLISH_ROOT, runs<-env RUNS_ROOT
+research/eval_harness/v4_eval.py	runpod:/workspace/hinglish/tests/v4_eval.py	6cb718f299499ad12c22112ed88c982f	modified: code paths: research/data_gen/gen, research/audio, packages/hinglish_text (were /workspace/hinglish/{gen,audio})
+research/eval_harness/v4_rerank.py	runpod:/workspace/hinglish/tests/v4_rerank.py	77eb6e9e6229a5c12a16c514648f6a79	modified: H<-env HINGLISH_ROOT, runs<-env RUNS_ROOT (defaults reproduce the original strings)
+research/eval_harness/vad_gate.py	runpod:/workspace/hinglish/tests/vad_gate.py	21efa8bde6a93dac9ffabea23d0d475b	verbatim

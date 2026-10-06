@@ -1077,3 +1077,138 @@ RunPod or the HF Space.
   uses `s2s-v4-assets`, so do not delete it.
 - **Pod1 mirror skipped:** `/workspace` is at quota and must not be written. The pod1 copies are `/root/s2s-hinglish-agent`
   (clone) and `/root/space-tree`.
+
+## D-MONOREPO-LAYOUT 2026-10-07 (user: "we want a training folder in the mono repo"; "i want the data gen trainin test inference all code on github")
+- **Top level of the monorepo, and of this development folder:**
+  - `packages/`: shared code, one copy.
+  - `research/`: the code that made the data, the models and the numbers.
+  - `deploy/`: the previous root (`worker/`, `space/`, `client/`, `common/`, `ops/`, `tests/`, `run_local.sh`, `run_all_cpu_tests.sh`).
+  - `docs/` and `.github/` stay at the root.
+- **Root README:** a start-here with the two paths (research vs deploy), a folder map and links to the HF model repos,
+  the dataset `shivamgupta/hinglish-s2s-synthetic-calls` and the Space. `deploy/README.md` = the previous root README
+  (run locally, deploy, tests).
+- **`deploy/` = `S2S_ROOT` in a checkout.** Every relative path inside it is unchanged.
+  - The image layout is unchanged: `/opt/s2s/{worker,common}`, plus the new `/opt/s2s/packages/`.
+  - `paths.PACKAGES` = `$S2S_PACKAGES`, else `ROOT/packages` (image), else `ROOT/../packages` (checkout).
+- **`common/` stays in `deploy/`, not `packages/`.** Only the worker and the Space use it, and both are under
+  `deploy/`. Its one piece of research-shared logic, the role-prompt format, moved to `packages/personaplex_lora/role_prompt.py`.
+- **CI** still triggers only on manual dispatch and `v*` tags, so research changes never build the image.
+  `deploy/worker/Dockerfile.dockerignore` whitelists only `deploy/worker`, three `deploy/common` files and
+  `packages/{needle_router,personaplex_lora}`. `check_dockerfile.py` asserts that
+  `research/` and `packages/hinglish_text` stay out of the context.
+
+## D-SINGLE-SOURCE 2026-10-07 (user: "worker/needle_v2/ holds 'copies' this is bad, we should never do this, a single source of truth")
+- **Every piece of code now exists once.**
+
+  | was (copies) | now (one copy) | consumers |
+  |---|---|---|
+  | `worker/needle_v2/{schema,numconv}` (path-edited copies of laptop `hinglish/needle_v2`) + HF router repo `needle_v2/` | `packages/needle_router/{v2,numconv}` | worker router, research/needle/n2, the pip package `needle_router` |
+  | `worker/needle/` (N1 subset, copy of `hinglish/needle`) + HF `needle/` | `packages/needle_router/n1` | worker (rollback `S2S_ROUTER=n1`), v2 (via `n1path`), research/needle/n1, the pip package `needle_router` |
+  | `worker/hinglish/{infer,trainer}` (copies of pod1 `hinglish/{infer,trainer}`) + HF `lora_merge.py` | `packages/personaplex_lora` | worker engine, research eval harness / training, the pip package `personaplex_lora` |
+  | `common/session.py` role-prompt code + pod1 `tests/tcommon.ascii_prompt` + HF `role_prompt.py` | `packages/personaplex_lora/role_prompt.py` | `deploy/common/session.py` (imports it from `/opt/s2s/packages/personaplex_lora` in the image; `space/stage_common.sh`, the one staging list, stages it next to `session.py` for the Space), research `tcommon.py`, the pip package |
+  | `gen/hindi_share.py` + `needle/vendor/hindi_share.py` (worker + HF) | `packages/hinglish_text/hindi_share.py` (+ project-made extra lexicons) | research/data_gen + eval harness, the N1 data build |
+  | HF `example.py`, `run_offline.py` (hand-kept) | `research/inference/{needle_router,personaplex_lora}` | HF cards (link; D-LEAN-HF) |
+  | `ops/stage_space.sh` + `space/stage_common.sh` (two file lists) | `space/stage_common.sh` (one list; `stage_space.sh` calls it) | Space build |
+  | N1 + N2 `finetune/{timed,tstamp,val_loss}.py`; `needle_v2/{setup,tools}/` | `research/needle/common/`; one `setup/` | research |
+
+- **HF code:** first a generator (`packages/export_hf.py`) was written; it was replaced the same day by D-LEAN-HF (the HF
+  repos hold no code; the packages are pip-installable). Before it was removed, its generated router tree ran the
+  card's quickstart on pod1 (CPU) with the card's output (`cancel_order` → `FD4124`).
+- **Edits to the code of record were paths only.**
+  - Dev-machine paths became file-relative paths or env vars that keep the original meaning, and each module's
+    docstring names its origin.
+  - One exception: `build_data.py` imports `hindi_share` **lazily** (`CITIES` is a lazy set). The routers use only
+    `system_text` / `PINNED_DATE`, so the worker image carries neither `hindi_share` nor the Google word lists
+    (`selftest.py`, `test_router_v2.py` and the image build assert this).
+  - `needle_tokenizer.model` (no runtime reference) and the Google lists (no clear licence) were dropped.
+- **Kept on purpose as independent test doubles (not copies):** `deploy/space/tests/fake_runpod_lite.py` vs
+  `deploy/tests/fake_runpod.py`. `xcheck_repo_fakes.py` cross-checks them.
+- **Laptop `hinglish/needle/` and `hinglish/needle_v2/` are now archives** (results, data, reports, older code
+  states). They are no longer a code source: code changes go to the monorepo (`packages/`, `research/needle/`).
+- **Tests:** `packages/selftest.py` (stdlib-only) is a new suite in `deploy/run_all_cpu_tests.sh`. It covers imports
+  without the engine, lazy `hindi_share`, role-prompt wiring, and that both pip packages build as wheels with their data.
+
+## D-TRAINING-CODE 2026-10-07 (user: "where is the training and testing harnesses, are they not there in the github repo?")
+- **`research/` holds the code of record**, code only. It was taken from pod1 `/workspace/hinglish` (current) and the
+  laptop needle folders, read-only. Each folder has a `README.md` (stage → script → inputs/outputs) and a
+  `PROVENANCE.tsv` (source path, md5, every edit). `research/README.md` maps both pipelines end to end.
+  - `data_gen/` (gen/ + guidance specs);
+  - `audio/` (TTS, Trelis QC, alignment, assembly);
+  - `personaplex_train/` (moshi-finetune patch: kyutai-labs/moshi-finetune @ 2acc879; the shipped
+    `personaplex_prefix.patch` is byte-identical to a fresh read-only diff of pod1's patched tree; PersonaPlex
+    itself is unmodified; configs, `train_run.sh`, preflight, `eval_heldout`, `pick_best`, the queue scripts,
+    voice-code scripts);
+  - `eval_harness/` (pod1 `tests/`);
+  - `needle/{n1,n2,common}`;
+  - `asr_cer/` (CER method study, Trelis calibration, TTS checks);
+  - `inference/`.
+- **Paths:** data and work dirs come from env vars (`HINGLISH_ROOT`, `RUNS_ROOT`, `N2_ROOT`, ...) whose defaults are
+  the original paths, and code is found relative to the script. The remaining hard-coded paths are listed per folder.
+- **Excluded:**
+  - `gen/novasynth_hinglish.py` + `gen/novasynth_src/`: verbatim NovaSynth (employer codebase) prompts, licence
+    unclear. V3/V4 generation needs a user-supplied file; `data_gen/README.md` lists the constants it must define.
+  - Google word lists: no clear licence (`HINDI_SHARE_LEXICON`).
+  - Upstream trees: shipped as a patch.
+  - Data, weights, reference voices, backups, logs, probes.
+- **Smoke:** `research/smoke_test.sh` (suite `research_smoke`) parses every `.py`/`.sh` and runs the VAD-gate and
+  numconv unit tests.
+- **Secret scan extended** (`deploy/ops/scan_secrets.sh`):
+  - the owner's e-mail, taken from `git config` at scan time, plus any `shivam*@` address;
+  - dev-machine home paths in code;
+  - code that reads a token file is reported for review.
+
+## D-ASSET-SWITCH 2026-10-07 (user: "edit the docker file and finish the asset switch")
+- **Build-time assets now come from the two model repos**, each pinned to a commit + md5, plus the public Needle
+  engine wheel. They no longer come from the private bundle `shivamgupta/s2s-v4-assets`.
+  - `shivamgupta/personaplex-hinglish-v4-lora@e59d4b04`: `config.json`, `lora.safetensors`.
+  - `shivamgupta/needle-hinglish-router-v2@72c05177`: `tuned_full.cact` (v2), `n1/tuned_full.cact` (N1).
+  - `Cactus-Compute/needle3@2ae11323`: `libneedle3.so` out of the 3.0.2 wheel.
+- **`fetch_assets.py` (`S2S_ASSETS_FROM_HF=1`) downloads ONLY the manifest's (repo, path) pairs.**
+  - A forbidden prefix (`V4_A/`, `V4_A2/`, `V3_A/`, `checkpoints/`, ...) is refused.
+  - The build fails if the HF cache holds any other file.
+  - It writes `/opt/s2s/assets/fetched.json`, and the Dockerfile `cat`s it into the build log.
+- **The Dockerfile drops the unpinned `needle._library_path(3)` pre-fetch.** A `RUN --network=none` step asserts that the
+  engine resolves to the baked, md5-checked lib.
+- **`libneedle.so` is now `required: true`.** In the live image `:3957130716eb` it was optional; its build log shows it
+  in place with the same md5 (`missing_optional: []`).
+- **The md5s are identical to the live image's manifest** (s2s-worker 3957130) for all 5 files.
+- **CI:** a new step, `deploy/worker/tests/check_manifest.py` (static allowlist: repos, 40-hex revisions, required,
+  forbidden prefixes, exact file set), also runs in the CPU suite.
+- **Retired:** `ops/upload_assets.sh` (removed), and `S2S_ASSETS_REPO` / `S2S_ASSETS_REVISION`.
+- **The router model card** has an `n1/tuned_full.cact` row.
+- **`shivamgupta/s2s-v4-assets` is now unused.** It is NOT deleted (user decision pending).
+
+## D-LEAN-HF 2026-10-07 (user decision "option A", via the orchestrator: HF model repos hold weights + configs + examples + card only)
+- **Replaces the HF code generator** (`packages/export_hf.py`, removed the same day). All usage code lives once in the
+  monorepo:
+  - `packages/needle_router` is pip-installable: `pip install "git+https://github.com/shivamgcodes/s2s-hinglish-agent#subdirectory=packages/needle_router"`;
+    import `needle_router`; deps `cactus-needle==3.0.6`.
+    - The layout is kept, with `package-dir {needle_router = "."}`.
+    - `__init__.py` puts `v2/`, `n1/`, `numconv/` on `sys.path` (flat modules as in the code of record) and re-exports
+      `route`, `route_raw`, `resolve_calls`, `prepare_transcript`, `close`, `AGENT_TYPES`, `HF_REPO`, `n1_router()`.
+  - `packages/personaplex_lora` is pip-installable the same way: import `personaplex_lora`.
+    - Its API: `merge_adapter(lm, dir)`, `load_adapter`, `build_role_prompt`, `voice_for`, `ascii_prompt`.
+    - torch, safetensors and PersonaPlex's moshi are installed separately; importing the package does not import torch.
+    - `role_prompt.py` moved here from the short-lived `packages/s2s_formats/`.
+  - Examples: `research/inference/needle_router/example.py` and `research/inference/personaplex_lora/run_offline.py`.
+    They import the packages, fall back to `packages/` in a checkout, and take weights and examples via
+    `hf_hub_download`.
+- **The worker and research use the same files in place** (the image COPYs them to `/opt/s2s/packages/`), so the
+  installed package and the checkout run identical code.
+  - `deploy/common/session.py` imports `role_prompt` from `/opt/s2s/packages/personaplex_lora` in the image. The
+    earlier in-image copy next to `session.py` was dropped.
+  - The Space build still stages it (`space/stage_common.sh`).
+- **Verified 2026-10-07 on pod1 from fresh installs of the local checkout** (the repo is private, so no `git+https` yet):
+  - Needle: a new py3.12 venv with the package + `huggingface_hub`. `example.py` downloaded `tuned_full.cact` +
+    `examples/food_01.json` and gave `cancel_order` → `FD4124`, `ask: false`.
+  - PersonaPlex: `pip install --target` of the package with the existing cu128 smoke venv (torch 2.11.0 + moshi), RTX
+    5090. `run_offline.py --max-seconds 10` downloaded the adapter and examples and merged
+    (`n_lora 253, scaling 2.0`). The agent replied in Hinglish.
+  - `packages/selftest.py` also builds both wheels and checks that they carry their data (lexicon, `tools_json`,
+    voice codes).
+- **HF repos:** one delete commit per repo removes the code (router: `needle/`, `needle_v2/`, `tools_json/`, `example.py`,
+  `requirements.txt`; LoRA: `lora_merge.py`, `role_prompt.py`, `run_offline.py`, `requirements.txt`). Weights,
+  `checkpoints/`, the run folders and `examples/` are untouched. The cards' Quickstart sections now `pip install` from
+  the monorepo and note that it is private until release. The local copies in `hinglish/hf_model_repos/` mirror this.
+- **The image build is unaffected:** `assets_manifest.json` pins the pre-deletion commits (e59d4b04 / 72c05177) and
+  downloads only weight files.

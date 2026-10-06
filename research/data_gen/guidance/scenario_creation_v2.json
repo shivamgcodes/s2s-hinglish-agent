@@ -1,0 +1,2431 @@
+{
+ "constraints": {
+  "one_primary_entity_per_call": true,
+  "dynamic_tools_allowed": false,
+  "compound_scenarios_allowed": true,
+  "midway_action_reversal_scenarios": false,
+  "scenario_tool_annotation": "Only static write tools are listed inside scenarios. Static reads are not annotated."
+ },
+ "agents": [
+  {
+   "agent_type": "food_delivery_support",
+   "brand_context": "Swiggy-style food delivery",
+   "distribution": 0.142,
+   "tools": {
+    "static_read": [
+     "get_order_status",
+     "get_order_details",
+     "get_delivery_eta",
+     "get_delivery_address",
+     "get_payment_details",
+     "get_delivery_instructions"
+    ],
+    "static_write": [
+     "cancel_order",
+     "change_delivery_address",
+     "add_delivery_instruction",
+     "update_contact_number",
+     "request_refund"
+    ]
+   },
+   "scenarios": [
+    {
+     "id": "food_01",
+     "title": "Delayed order, frustrated customer",
+     "flow": [
+      "Customer says the order has been taking much longer than expected and asks where it is.",
+      "Agent confirms the order ID.",
+      "Customer confirms.",
+      "Agent gives the known order status and ETA.",
+      "Customer complains that they have already been waiting a long time.",
+      "Agent acknowledges the frustration and reassures them using only the known status and ETA."
+     ]
+    },
+    {
+     "id": "food_02",
+     "title": "Customer repeatedly checks whether delayed food is actually coming",
+     "flow": [
+      "Customer says the app has not seemed to change for a while.",
+      "Agent confirms the order ID.",
+      "Customer confirms.",
+      "Agent gives the known status and ETA.",
+      "Customer asks whether the order is definitely still on the way.",
+      "Agent reassures them without claiming to contact the rider or restaurant."
+     ]
+    },
+    {
+     "id": "food_03",
+     "title": "Cold and soggy food complaint with refund request",
+     "flow": [
+      "Customer says the delivered food was cold and soggy.",
+      "Agent confirms the order ID and acknowledges the poor experience.",
+      "Customer explains which items were affected.",
+      "Customer asks for a refund.",
+      "Agent submits the refund request.",
+      "Agent confirms that the refund has been requested without inventing an amount or timeline."
+     ],
+     "tools": [
+      "request_refund"
+     ]
+    },
+    {
+     "id": "food_04",
+     "title": "Missing item from delivered order",
+     "flow": [
+      "Customer says one item is missing from the delivery.",
+      "Agent confirms the order ID.",
+      "Customer confirms.",
+      "Agent verifies that the missing item was part of the order.",
+      "Customer asks for a refund for the issue.",
+      "Agent submits and confirms the refund request."
+     ],
+     "tools": [
+      "request_refund"
+     ]
+    },
+    {
+     "id": "food_05",
+     "title": "Order status followed by delivery instruction",
+     "flow": [
+      "Customer asks where the order is.",
+      "Agent confirms the order ID and gives the known status and ETA.",
+      "Customer says they are in a meeting and asks the rider not to ring the bell.",
+      "Customer asks for a call instead.",
+      "Agent adds the instruction and confirms the final wording."
+     ],
+     "tools": [
+      "add_delivery_instruction"
+     ]
+    },
+    {
+     "id": "food_06",
+     "title": "Customer has moved location and changes delivery details",
+     "flow": [
+      "Customer asks for the current ETA.",
+      "Agent provides the known ETA.",
+      "Customer realizes they will no longer be at the current delivery address.",
+      "Customer provides their office address.",
+      "Agent updates and confirms the new address.",
+      "Customer also provides a different contact number.",
+      "Agent updates and confirms the new number."
+     ],
+     "tools": [
+      "change_delivery_address",
+      "update_contact_number"
+     ]
+    },
+    {
+     "id": "food_07",
+     "title": "Address, landmark and delivery instruction changed together",
+     "flow": [
+      "Customer says the delivery address needs correcting.",
+      "Customer gives the corrected address, including tower and flat number.",
+      "Agent updates and confirms the address.",
+      "Customer adds a landmark and asks the rider to call from the gate.",
+      "Agent records and confirms the instruction."
+     ],
+     "tools": [
+      "change_delivery_address",
+      "add_delivery_instruction"
+     ]
+    },
+    {
+     "id": "food_08",
+     "title": "Customer corrects address while dictating it",
+     "flow": [
+      "Customer asks to change the delivery address.",
+      "Customer begins giving the new address.",
+      "Customer immediately corrects the flat number while speaking.",
+      "Agent uses only the corrected final address.",
+      "Agent updates the address and echoes the final version."
+     ],
+     "tools": [
+      "change_delivery_address"
+     ]
+    },
+    {
+     "id": "food_09",
+     "title": "Order is still preparing and customer cancels due to delay",
+     "flow": [
+      "Customer asks for the current status.",
+      "Agent confirms the order ID and says the order is still preparing.",
+      "Customer is annoyed by the delay and says they no longer want it.",
+      "Agent confirms the cancellation request.",
+      "Agent cancels the order and confirms completion."
+     ],
+     "tools": [
+      "cancel_order"
+     ]
+    },
+    {
+     "id": "food_10",
+     "title": "Contact number and delivery instruction changed for another receiver",
+     "flow": [
+      "Customer says a family member will receive the food.",
+      "Customer gives that person's phone number.",
+      "Agent updates and confirms the number.",
+      "Customer asks the rider to call when downstairs instead of ringing.",
+      "Agent records and confirms the instruction."
+     ],
+     "tools": [
+      "update_contact_number",
+      "add_delivery_instruction"
+     ]
+    },
+    {
+     "id": "food_11",
+     "title": "Customer checks order contents before delivery",
+     "flow": [
+      "Customer asks whether a specific side and drink are included in the order.",
+      "Agent confirms the order ID.",
+      "Customer confirms.",
+      "Agent tells them the known item list and quantities.",
+      "Customer asks one short follow-up about the total amount.",
+      "Agent gives the known order total."
+     ]
+    },
+    {
+     "id": "food_12",
+     "title": "Incorrect delivery instruction needs replacement",
+     "flow": [
+      "Customer asks what delivery instruction is currently attached to the order.",
+      "Agent tells them the existing instruction.",
+      "Customer says that instruction is wrong and provides a replacement.",
+      "Agent updates the instruction.",
+      "Agent repeats the new instruction back clearly."
+     ],
+     "tools": [
+      "add_delivery_instruction"
+     ]
+    },
+    {
+     "id": "food_13",
+     "title": "Food quality complaint with emotional conversation",
+     "flow": [
+      "Customer says the meal arrived very late and is now barely edible.",
+      "Agent acknowledges the frustration and asks what was wrong with the food.",
+      "Customer explains that the fries are cold and the packaging is wet.",
+      "Agent responds empathetically without claiming to investigate live systems.",
+      "Customer asks for a refund request.",
+      "Agent submits and confirms it."
+     ],
+     "tools": [
+      "request_refund"
+     ]
+    },
+    {
+     "id": "food_14",
+     "title": "Payment failure anxiety and contact number update",
+     "flow": [
+      "Customer asks about the payment status of their order because they are worried about being charged twice.",
+      "Agent confirms the order ID and provides the known payment details.",
+      "Customer expresses concern that the bank SMS was not received.",
+      "Customer decides to update their registered contact number to receive alerts.",
+      "Customer provides the new phone number.",
+      "Agent updates and confirms the new contact number."
+     ],
+     "tools": [
+      "update_contact_number"
+     ]
+    },
+    {
+     "id": "food_15",
+     "title": "Polite customer verifying order details and payment method",
+     "flow": [
+      "Customer politely asks to check the status of their order.",
+      "Agent confirms the order ID and provides the known order status.",
+      "Customer asks for the specific items included in the order.",
+      "Agent provides the known order details.",
+      "Customer asks which payment method was used for this order.",
+      "Agent provides the known payment details.",
+      "Customer thanks the agent and ends the call."
+     ]
+    },
+    {
+     "id": "food_16",
+     "title": "Concise customer checking order details and ETA",
+     "flow": [
+      "Customer asks for the current status of their order.",
+      "Agent confirms the order ID and provides the status.",
+      "Customer asks for the exact ETA.",
+      "Agent provides the known ETA.",
+      "Customer asks for the delivery address on file.",
+      "Agent provides the known delivery address."
+     ]
+    },
+    {
+     "id": "food_17",
+     "title": "Annoyed customer checking delivery address after past mistakes",
+     "flow": [
+      "Customer calls and expresses annoyance because previous orders were delivered to the wrong spot.",
+      "Agent confirms the order ID.",
+      "Customer demands to know exactly which address is listed for this order.",
+      "Agent provides the known delivery address.",
+      "Customer asks if there are any specific instructions for the rider.",
+      "Agent provides the known delivery instructions."
+     ]
+    },
+    {
+     "id": "food_18",
+     "title": "Elderly customer adding gate code for delivery",
+     "flow": [
+      "Customer explains they are having trouble with the app and speaks slowly.",
+      "Agent confirms the order ID and asks how they can help.",
+      "Customer asks to add a specific security gate code for the driver.",
+      "Customer dictates the gate code as a delivery instruction.",
+      "Agent adds and confirms the gate code instruction.",
+      "Customer thanks the agent for their patience."
+     ],
+     "tools": [
+      "add_delivery_instruction"
+     ]
+    },
+    {
+     "id": "food_19",
+     "title": "Traveler updating contact and delivery details during transit",
+     "flow": [
+      "Customer calls from a noisy environment and asks for their order status.",
+      "Agent confirms the order ID and provides the known status.",
+      "Customer explains they are traveling and need to update their phone number.",
+      "Customer provides the new contact number.",
+      "Agent updates and confirms the new contact number.",
+      "Customer asks to add a specific instruction to leave the food at the reception.",
+      "Agent adds and confirms the delivery instruction."
+     ],
+     "tools": [
+      "update_contact_number",
+      "add_delivery_instruction"
+     ]
+    },
+    {
+     "id": "food_20",
+     "title": "Direct customer requesting multiple delivery updates",
+     "flow": [
+      "Customer asks for the current order status.",
+      "Agent provides the known order status.",
+      "Customer provides a new delivery address.",
+      "Agent updates and confirms the new address.",
+      "Customer provides a new contact number.",
+      "Agent updates and confirms the new number.",
+      "Customer provides a delivery instruction to not ring the bell.",
+      "Agent adds and confirms the instruction."
+     ],
+     "tools": [
+      "change_delivery_address",
+      "update_contact_number",
+      "add_delivery_instruction"
+     ]
+    },
+    {
+     "id": "food_21",
+     "title": "Anxious customer cancels order due to emergency",
+     "flow": [
+      "Customer calls politely but sounding anxious, stating a family emergency.",
+      "Agent confirms the order ID.",
+      "Customer asks to cancel the order immediately.",
+      "Agent performs the cancellation of the order.",
+      "Agent confirms the order has been cancelled."
+     ],
+     "tools": [
+      "cancel_order"
+     ]
+    },
+    {
+     "id": "food_22",
+     "title": "Traveler on noisy line diverting order to hotel",
+     "flow": [
+      "Customer calls from a noisy background to change their destination.",
+      "Agent confirms the order ID.",
+      "Customer provides their current hotel address.",
+      "Agent updates and confirms the hotel address.",
+      "Customer provides a delivery instruction to leave the food at the reception.",
+      "Agent adds and confirms the delivery instruction."
+     ],
+     "tools": [
+      "change_delivery_address",
+      "add_delivery_instruction"
+     ]
+    },
+    {
+     "id": "food_23",
+     "title": "Professional in a hurry changing drop-off location",
+     "flow": [
+      "Customer calls quickly between meetings and asks for the current ETA.",
+      "Agent provides the known ETA.",
+      "Customer says they have changed meeting rooms and provides a new office address.",
+      "Agent updates and confirms the new delivery address.",
+      "Customer thanks the agent and ends the call."
+     ],
+     "tools": [
+      "change_delivery_address"
+     ]
+    }
+   ]
+  },
+  {
+   "agent_type": "ecommerce_support",
+   "brand_context": "General ecommerce order support",
+   "distribution": 0.142,
+   "tools": {
+    "static_read": [
+     "get_order_status",
+     "get_order_details",
+     "get_delivery_date",
+     "get_delivery_address",
+     "get_payment_details",
+     "get_return_status"
+    ],
+    "static_write": [
+     "cancel_order",
+     "change_delivery_address",
+     "add_delivery_instruction",
+     "update_contact_number",
+     "request_refund"
+    ]
+   },
+   "scenarios": [
+    {
+     "id": "ecom_01",
+     "title": "Customer needs package before travelling",
+     "flow": [
+      "Customer says they are travelling soon and asks when the package will arrive.",
+      "Agent confirms the order ID.",
+      "Customer confirms.",
+      "Agent gives the known delivery date and status.",
+      "Customer asks whether the date means it should arrive before their trip.",
+      "Agent restates the known date without making additional guarantees."
+     ]
+    },
+    {
+     "id": "ecom_02",
+     "title": "Expensive order causing anxiety",
+     "flow": [
+      "Customer says the order is expensive and they are worried because they have not received it yet.",
+      "Agent confirms the order ID.",
+      "Agent gives the known shipment status and delivery date.",
+      "Customer asks which exact product variant they ordered.",
+      "Agent confirms the known variant and payment details."
+     ]
+    },
+    {
+     "id": "ecom_03",
+     "title": "Wrong product variant leads to cancellation",
+     "flow": [
+      "Customer asks whether they ordered the 128 GB or 256 GB variant.",
+      "Agent tells them the stored variant.",
+      "Customer realizes they selected the wrong version.",
+      "Customer asks to cancel the order.",
+      "Agent cancels it and confirms completion."
+     ],
+     "tools": [
+      "cancel_order"
+     ]
+    },
+    {
+     "id": "ecom_04",
+     "title": "Old delivery address discovered",
+     "flow": [
+      "Customer asks which address the package is being delivered to.",
+      "Agent gives the stored address.",
+      "Customer realizes it is their previous residence.",
+      "Customer dictates the new address.",
+      "Agent updates and confirms it."
+     ],
+     "tools": [
+      "change_delivery_address"
+     ]
+    },
+    {
+     "id": "ecom_05",
+     "title": "Recently moved customer updates address and phone",
+     "flow": [
+      "Customer says both the delivery address and contact number are outdated.",
+      "Customer provides the new address.",
+      "Agent updates and confirms it.",
+      "Customer provides the new phone number.",
+      "Agent updates and confirms the number."
+     ],
+     "tools": [
+      "change_delivery_address",
+      "update_contact_number"
+     ]
+    },
+    {
+     "id": "ecom_06",
+     "title": "Office delivery requires security instructions",
+     "flow": [
+      "Customer says the package is going to an office building.",
+      "Customer explains that delivery personnel cannot enter upstairs.",
+      "Customer asks for the parcel to be left with security and for them to be called.",
+      "Agent records and confirms the instruction."
+     ],
+     "tools": [
+      "add_delivery_instruction"
+     ]
+    },
+    {
+     "id": "ecom_07",
+     "title": "Family member will receive the package",
+     "flow": [
+      "Customer says they will not be home during delivery.",
+      "Customer gives a family member's phone number.",
+      "Agent updates and confirms the number.",
+      "Customer asks the delivery person to hand the package to that family member.",
+      "Agent records and confirms the instruction."
+     ],
+     "tools": [
+      "update_contact_number",
+      "add_delivery_instruction"
+     ]
+    },
+    {
+     "id": "ecom_08",
+     "title": "Damaged product complaint",
+     "flow": [
+      "Customer says the package arrived with damaged packaging and the product is broken.",
+      "Agent confirms the order ID and product.",
+      "Customer describes the damage and expresses frustration.",
+      "Agent acknowledges the problem.",
+      "Customer asks for a refund.",
+      "Agent submits and confirms the refund request."
+     ],
+     "tools": [
+      "request_refund"
+     ]
+    },
+    {
+     "id": "ecom_09",
+     "title": "Returned item, customer wants refund",
+     "flow": [
+      "Customer asks about the return status of an item they already sent back.",
+      "Agent gives the known return status.",
+      "Customer says they now want the refund request raised.",
+      "Agent submits the request.",
+      "Agent confirms without inventing a refund amount or timeline."
+     ],
+     "tools": [
+      "request_refund"
+     ]
+    },
+    {
+     "id": "ecom_10",
+     "title": "Delivery date is too late for an occasion",
+     "flow": [
+      "Customer says the item was meant as a birthday gift.",
+      "Customer asks when it will arrive.",
+      "Agent gives the known delivery date.",
+      "Customer says the birthday is before that date and asks to cancel.",
+      "Agent cancels the order and confirms it."
+     ],
+     "tools": [
+      "cancel_order"
+     ]
+    },
+    {
+     "id": "ecom_11",
+     "title": "Customer gradually remembers which product they bought",
+     "flow": [
+      "Customer cannot remember the exact product name and describes it casually.",
+      "Agent confirms the order ID.",
+      "Customer provides the ID.",
+      "Agent tells them the product name, colour or variant, order status and delivery date.",
+      "Customer confirms that this is what they were looking for."
+     ]
+    },
+    {
+     "id": "ecom_12",
+     "title": "Frustrated customer wants only concise factual answers",
+     "flow": [
+      "Customer says they have already spent too much time dealing with the order.",
+      "Customer asks only where the package is and when it should arrive.",
+      "Agent gives the status and known delivery date concisely.",
+      "Customer asks which phone number is attached to delivery.",
+      "Agent answers directly without unnecessary explanation."
+     ]
+    },
+    {
+     "id": "ecom_13",
+     "title": "Customer corrects delivery address while dictating it",
+     "flow": [
+      "Customer asks to change their delivery address.",
+      "Customer gives the street and building details.",
+      "Customer notices they gave the wrong apartment number and corrects it.",
+      "Agent uses the final corrected address only.",
+      "Agent updates and confirms the full address."
+     ],
+     "tools": [
+      "change_delivery_address"
+     ]
+    },
+    {
+     "id": "ecom_14",
+     "title": "Skeptical customer verifies order details before updating address",
+     "flow": [
+      "Customer asks for the current delivery address to verify the order.",
+      "Agent provides the stored delivery address.",
+      "Customer expresses skepticism about the order's progress and asks for the order status.",
+      "Agent provides the known order status.",
+      "Customer decides to change the delivery address to their current location.",
+      "Agent changes the address and confirms the new location."
+     ],
+     "tools": [
+      "change_delivery_address"
+     ]
+    },
+    {
+     "id": "ecom_15",
+     "title": "Noisy caller checks payment and delivery status",
+     "flow": [
+      "Customer calls from a noisy environment to check their order status.",
+      "Agent confirms the order ID.",
+      "Customer confirms the ID.",
+      "Customer asks if the payment was successful.",
+      "Agent provides the known payment details.",
+      "Customer asks for the expected delivery date.",
+      "Agent provides the known delivery date."
+     ]
+    },
+    {
+     "id": "ecom_16",
+     "title": "Anxious customer verifies return status of item",
+     "flow": [
+      "Customer expresses worry about whether their return was received.",
+      "Agent confirms the order ID.",
+      "Customer confirms.",
+      "Agent provides the current return status from the records.",
+      "Customer asks for the specific details of the returned item.",
+      "Agent provides the known order details."
+     ]
+    },
+    {
+     "id": "ecom_17",
+     "title": "Relative checking order details for elderly parent",
+     "flow": [
+      "Customer explains they are calling on behalf of their father.",
+      "Agent confirms the order ID associated with the account.",
+      "Customer confirms the ID.",
+      "Customer asks what exactly was ordered.",
+      "Agent provides the known order details.",
+      "Customer asks where the package is being sent.",
+      "Agent provides the known delivery address."
+     ]
+    },
+    {
+     "id": "ecom_18",
+     "title": "Noisy caller adds delivery instructions for gated society",
+     "flow": [
+      "Customer calls from a noisy background to check the delivery date.",
+      "Agent confirms the order ID and provides the known delivery date.",
+      "Customer mentions they live in a gated society with a specific entry gate.",
+      "Customer asks to add an instruction to use the 'North Gate' only.",
+      "Agent adds the instruction and confirms the specific gate mentioned."
+     ],
+     "tools": [
+      "add_delivery_instruction"
+     ]
+    },
+    {
+     "id": "ecom_19",
+     "title": "Student needs package diverted to hostel gate",
+     "flow": [
+      "Customer asks for the current delivery address of their order.",
+      "Agent confirms the stored delivery address.",
+      "Customer says they need to change the address to their hostel gate.",
+      "Agent changes the address and confirms the new location.",
+      "Customer asks to add an instruction to leave it at the guard desk.",
+      "Agent adds the instruction and confirms it."
+     ],
+     "tools": [
+      "change_delivery_address",
+      "add_delivery_instruction"
+     ]
+    },
+    {
+     "id": "ecom_20",
+     "title": "Updating contact number for elderly parent's order",
+     "flow": [
+      "Customer says they are managing an order for their father.",
+      "Agent confirms the order details and current contact number.",
+      "Customer explains the father's phone is broken and asks to update it to their own number.",
+      "Agent updates the contact number and confirms the new number."
+     ],
+     "tools": [
+      "update_contact_number"
+     ]
+    },
+    {
+     "id": "ecom_21",
+     "title": "Busy professional cancels accidental duplicate order",
+     "flow": [
+      "Customer says they are in a hurry and noticed a duplicate order.",
+      "Agent confirms the order ID.",
+      "Customer confirms and asks to cancel it immediately.",
+      "Agent cancels the order and confirms completion."
+     ],
+     "tools": [
+      "cancel_order"
+     ]
+    },
+    {
+     "id": "ecom_22",
+     "title": "Confused new user cancels and requests refund",
+     "flow": [
+      "Customer says they are new to the app and accidentally ordered the wrong item.",
+      "Agent confirms the order ID and current status.",
+      "Customer asks to cancel the order.",
+      "Agent cancels the order and confirms completion.",
+      "Customer asks how to get their money back.",
+      "Customer provides the reference ID and reason for refund.",
+      "Agent submits the refund request and confirms submission."
+     ],
+     "tools": [
+      "cancel_order",
+      "request_refund"
+     ]
+    },
+    {
+     "id": "ecom_23",
+     "title": "Quick updates for a package sent to a friend",
+     "flow": [
+      "Customer says they are between meetings and need to fix a gift order.",
+      "Agent confirms the order ID.",
+      "Customer asks to change the delivery address to their friend's house.",
+      "Agent changes the address and confirms the new location.",
+      "Customer asks to update the contact number to the friend's number.",
+      "Agent updates the number and confirms it.",
+      "Customer asks to add a note saying 'Happy Birthday'.",
+      "Agent adds the instruction and confirms it."
+     ],
+     "tools": [
+      "change_delivery_address",
+      "update_contact_number",
+      "add_delivery_instruction"
+     ]
+    }
+   ]
+  },
+  {
+   "agent_type": "cab_ride_support",
+   "brand_context": "App-based cab ride support",
+   "distribution": 0.16,
+   "tools": {
+    "static_read": [
+     "get_ride_status",
+     "get_ride_details",
+     "get_driver_details",
+     "get_pickup_drop_details",
+     "get_fare_details",
+     "get_payment_details"
+    ],
+    "static_write": [
+     "cancel_ride",
+     "change_pickup_location",
+     "change_drop_location",
+     "add_driver_instruction",
+     "update_contact_number",
+     "request_refund"
+    ]
+   },
+   "scenarios": [
+    {
+     "id": "cab_01",
+     "title": "Late cab while customer is rushing to airport",
+     "flow": [
+      "Customer says the cab is late and they are worried about missing their flight.",
+      "Agent confirms the ride ID.",
+      "Customer confirms.",
+      "Agent gives the known ride status and ETA.",
+      "Customer expresses anxiety about the delay.",
+      "Agent calmly reassures them using only the known ride information."
+     ]
+    },
+    {
+     "id": "cab_02",
+     "title": "Customer repeatedly asks whether cab is actually coming",
+     "flow": [
+      "Customer says they have been waiting and asks whether the cab is still arriving.",
+      "Agent gives the known status and ETA.",
+      "Customer asks for the driver's name and vehicle number.",
+      "Agent provides both.",
+      "Customer says they are worried because they cannot see the vehicle yet.",
+      "Agent reiterates the known information without pretending to contact the driver."
+     ]
+    },
+    {
+     "id": "cab_03",
+     "title": "Airport pickup point changes",
+     "flow": [
+      "Customer says they have moved from the original terminal pickup point.",
+      "Customer provides the new gate.",
+      "Agent changes the pickup location.",
+      "Agent confirms the new pickup point."
+     ],
+     "tools": [
+      "change_pickup_location"
+     ]
+    },
+    {
+     "id": "cab_04",
+     "title": "Pickup location and phone number both change",
+     "flow": [
+      "Customer says they are now waiting at a different airport gate.",
+      "Customer asks to change the pickup location.",
+      "Agent updates and confirms it.",
+      "Customer says their primary phone has poor network and provides another number.",
+      "Agent updates and confirms the number."
+     ],
+     "tools": [
+      "change_pickup_location",
+      "update_contact_number"
+     ]
+    },
+    {
+     "id": "cab_05",
+     "title": "Pickup location plus detailed driver instruction",
+     "flow": [
+      "Customer changes pickup to the side entrance of a hotel.",
+      "Agent updates the pickup location.",
+      "Customer explains that the driver should wait outside the security barrier.",
+      "Agent records the instruction.",
+      "Agent confirms both the final pickup and instruction."
+     ],
+     "tools": [
+      "change_pickup_location",
+      "add_driver_instruction"
+     ]
+    },
+    {
+     "id": "cab_06",
+     "title": "Customer changes destination",
+     "flow": [
+      "Customer says they now need to go to their office instead of home.",
+      "Customer gives the new destination.",
+      "Agent changes the drop location.",
+      "Agent repeats the final destination for confirmation."
+     ],
+     "tools": [
+      "change_drop_location"
+     ]
+    },
+    {
+     "id": "cab_07",
+     "title": "Pickup and destination both entered incorrectly",
+     "flow": [
+      "Customer checks the pickup and drop details.",
+      "Agent tells them the stored locations.",
+      "Customer realizes both are incorrect and provides the correct pickup.",
+      "Agent updates it.",
+      "Customer gives the correct destination.",
+      "Agent updates it and confirms both final locations."
+     ],
+     "tools": [
+      "change_pickup_location",
+      "change_drop_location"
+     ]
+    },
+    {
+     "id": "cab_08",
+     "title": "Customer feels uncomfortable during ride",
+     "flow": [
+      "Customer says something about the driver's behaviour is making them uncomfortable.",
+      "Agent takes the concern seriously and prioritizes the customer's safety.",
+      "Agent tells them to use the in-app SOS or safety feature if available.",
+      "Agent advises them to contact emergency services if they believe they are in immediate danger.",
+      "Agent does not minimize the concern or make unsupported claims about monitoring the ride."
+     ]
+    },
+    {
+     "id": "cab_09",
+     "title": "Customer is worried because route feels unfamiliar",
+     "flow": [
+      "Customer says the driver is taking roads they do not recognize and they feel unsafe.",
+      "Agent acknowledges the concern.",
+      "Agent recommends using the app's safety or SOS functionality.",
+      "Agent advises contacting emergency services if they feel they are in immediate danger.",
+      "Agent avoids claiming access to live route information that is not in the prompt."
+     ]
+    },
+    {
+     "id": "cab_10",
+     "title": "Customer cannot identify the arriving cab",
+     "flow": [
+      "Customer says there are many cars around and they cannot tell which one is theirs.",
+      "Agent confirms the ride ID.",
+      "Agent gives the driver's name, vehicle number and known pickup location.",
+      "Customer repeats the vehicle number to verify.",
+      "Agent confirms it."
+     ]
+    },
+    {
+     "id": "cab_11",
+     "title": "Ride booked for elderly parent",
+     "flow": [
+      "Customer says their parent will be taking the ride.",
+      "Customer provides the parent's phone number.",
+      "Agent updates and confirms it.",
+      "Customer asks the driver to call when arriving and wait near the entrance.",
+      "Agent records and confirms the instruction."
+     ],
+     "tools": [
+      "update_contact_number",
+      "add_driver_instruction"
+     ]
+    },
+    {
+     "id": "cab_12",
+     "title": "Major delay leads to cancellation",
+     "flow": [
+      "Customer complains that the cab is taking too long.",
+      "Agent gives the known status and ETA.",
+      "Customer says they will arrange another ride and asks to cancel this one.",
+      "Agent cancels the ride.",
+      "Agent confirms cancellation."
+     ],
+     "tools": [
+      "cancel_ride"
+     ]
+    },
+    {
+     "id": "cab_13",
+     "title": "Fare disagreement followed by refund request",
+     "flow": [
+      "Customer says they remember a different fare and asks what amount is recorded.",
+      "Agent gives the known fare and payment method.",
+      "Customer remains dissatisfied and asks for a refund request.",
+      "Agent submits the request.",
+      "Agent confirms the request without inventing a calculated refund amount."
+     ],
+     "tools": [
+      "request_refund"
+     ]
+    },
+    {
+     "id": "cab_14",
+     "title": "Wrong office branch entered as destination",
+     "flow": [
+      "Customer asks what drop location is on the ride.",
+      "Agent provides it.",
+      "Customer realizes they entered the wrong office branch.",
+      "Customer provides the correct location.",
+      "Agent updates and confirms the destination."
+     ],
+     "tools": [
+      "change_drop_location"
+     ]
+    },
+    {
+     "id": "cab_15",
+     "title": "Another family member will take the ride",
+     "flow": [
+      "Customer says their sister will take the ride instead.",
+      "Customer gives the sister's phone number.",
+      "Agent updates it.",
+      "Customer adjusts the pickup location slightly.",
+      "Agent updates it.",
+      "Customer asks for an instruction identifying the passenger.",
+      "Agent records and confirms all final details."
+     ],
+     "tools": [
+      "update_contact_number",
+      "change_pickup_location",
+      "add_driver_instruction"
+     ]
+    },
+    {
+     "id": "cab_16",
+     "title": "Passenger has heavy luggage and needs precise pickup",
+     "flow": [
+      "Customer asks for the driver and vehicle details.",
+      "Agent gives the known details.",
+      "Customer says they have large suitcases and asks the driver to stop near the trolley area.",
+      "Agent records the instruction and confirms it."
+     ],
+     "tools": [
+      "add_driver_instruction"
+     ]
+    },
+    {
+     "id": "cab_17",
+     "title": "Customer verifying payment method and fare details",
+     "flow": [
+      "Customer asks for the total fare of their current ride.",
+      "Agent confirms the ride ID and states the fare details.",
+      "Customer asks which payment method is linked to the ride.",
+      "Agent provides the payment details from the system.",
+      "Customer thanks the agent for the information."
+     ]
+    },
+    {
+     "id": "cab_18",
+     "title": "Elderly customer redirecting ride to a clinic",
+     "flow": [
+      "Customer calls and asks the agent to speak slowly as they are confused about the destination.",
+      "Agent confirms the ride ID and states the current drop location.",
+      "Customer requests to change the destination to a nearby health clinic.",
+      "Customer provides the clinic name and address.",
+      "Agent changes the drop location.",
+      "Agent slowly confirms the new clinic address."
+     ],
+     "tools": [
+      "change_drop_location"
+     ]
+    },
+    {
+     "id": "cab_19",
+     "title": "Customer confirming driver details for safety",
+     "flow": [
+      "Customer wants to verify the details of the driver assigned to them.",
+      "Agent confirms the ride ID.",
+      "Customer asks for the driver's name and vehicle details.",
+      "Agent provides the driver details from the system.",
+      "Customer confirms they see the car and ends the call."
+     ]
+    },
+    {
+     "id": "cab_20",
+     "title": "Skeptical caller updating pickup due to road closure",
+     "flow": [
+      "Customer calls to change pickup because the main road is blocked.",
+      "Agent confirms the ride ID and current pickup point.",
+      "Customer asks the agent to verify the driver's name first to ensure the ride is active.",
+      "Agent provides the known driver details.",
+      "Customer provides the new pickup street address.",
+      "Agent changes the pickup location and repeats the new address."
+     ],
+     "tools": [
+      "change_pickup_location"
+     ]
+    },
+    {
+     "id": "cab_21",
+     "title": "Planned event cancelled leading to ride cancellation",
+     "flow": [
+      "Customer says the event they were attending is cancelled.",
+      "Agent confirms the ride ID.",
+      "Customer requests to cancel the ride.",
+      "Agent cancels the ride.",
+      "Agent confirms the ride has been cancelled."
+     ],
+     "tools": [
+      "cancel_ride"
+     ]
+    },
+    {
+     "id": "cab_22",
+     "title": "Professional rushing between meetings checking ride status",
+     "flow": [
+      "Customer calls in a hurry to check their current ride status.",
+      "Agent confirms the ride ID and provides the current ride status.",
+      "Customer asks for the driver's name and vehicle details.",
+      "Agent provides the driver details from the known facts.",
+      "Customer asks for the final fare estimate.",
+      "Agent provides the fare details from the known facts."
+     ]
+    },
+    {
+     "id": "cab_23",
+     "title": "Elderly customer relocating destination and updating contact details",
+     "flow": [
+      "Customer says they are confused about their current drop location and needs to change it.",
+      "Customer provides the new destination address.",
+      "Agent changes the drop location and repeats the new address.",
+      "Customer asks to add a note for the driver to wait near the main gate.",
+      "Agent adds the driver instruction and confirms the text.",
+      "Customer mentions their phone is dying and wants to update the contact number to their daughter's.",
+      "Customer provides the new phone number.",
+      "Agent updates the contact number and repeats it back."
+     ],
+     "tools": [
+      "change_drop_location",
+      "add_driver_instruction",
+      "update_contact_number"
+     ]
+    },
+    {
+     "id": "cab_24",
+     "title": "Student updating destination and contact details",
+     "flow": [
+      "Customer identifies their ride ID.",
+      "Agent confirms the ride details.",
+      "Customer says they need to change the drop location to a cheaper area.",
+      "Customer provides the new destination.",
+      "Agent changes the drop location and confirms it.",
+      "Customer requests to update the registered contact number.",
+      "Customer provides the new phone number.",
+      "Agent updates the contact number and repeats it for confirmation."
+     ],
+     "tools": [
+      "change_drop_location",
+      "update_contact_number"
+     ]
+    },
+    {
+     "id": "cab_25",
+     "title": "Anxious customer adding instructions regarding payment",
+     "flow": [
+      "Customer calls expressing worry about the total ride cost.",
+      "Agent confirms the ride ID and provides the fare details.",
+      "Customer asks to add a note for the driver to confirm the fare before starting.",
+      "Customer provides the instruction text.",
+      "Agent adds the driver instruction and confirms the text."
+     ],
+     "tools": [
+      "add_driver_instruction"
+     ]
+    },
+    {
+     "id": "cab_26",
+     "title": "Coordinating pickup for a sick relative at a hospital",
+     "flow": [
+      "Customer calls to manage a ride for their sick relative being discharged.",
+      "Agent confirms the ride ID and current pickup point.",
+      "Customer states the relative is at a different hospital wing and provides the new pickup gate.",
+      "Agent changes the pickup location.",
+      "Customer asks the agent to tell the driver to help with a wheelchair.",
+      "Agent adds the driver instruction regarding the wheelchair.",
+      "Agent confirms the updated location and the specific instruction."
+     ],
+     "tools": [
+      "change_pickup_location",
+      "add_driver_instruction"
+     ]
+    }
+   ]
+  },
+  {
+   "agent_type": "subscription_account_support",
+   "brand_context": "Digital subscription service",
+   "distribution": 0.142,
+   "tools": {
+    "static_read": [
+     "get_subscription_status",
+     "get_plan_details",
+     "get_billing_details",
+     "get_renewal_details",
+     "get_account_details",
+     "get_payment_method"
+    ],
+    "static_write": [
+     "cancel_subscription",
+     "pause_subscription",
+     "update_contact_number",
+     "update_email_address",
+     "request_refund"
+    ]
+   },
+   "scenarios": [
+    {
+     "id": "sub_01",
+     "title": "Unexpected charge complaint",
+     "flow": [
+      "Customer says they noticed a charge and want to understand what it is for.",
+      "Agent confirms the account.",
+      "Agent gives the current plan, price and renewal date.",
+      "Customer says they did not realize the subscription had renewed.",
+      "Agent explains only the known billing facts."
+     ]
+    },
+    {
+     "id": "sub_02",
+     "title": "Unexpected renewal followed by cancellation",
+     "flow": [
+      "Customer asks why they were charged.",
+      "Agent explains the known plan and renewal details.",
+      "Customer says they barely use the service and does not want another renewal.",
+      "Customer asks to cancel.",
+      "Agent cancels the subscription and confirms it."
+     ],
+     "tools": [
+      "cancel_subscription"
+     ]
+    },
+    {
+     "id": "sub_03",
+     "title": "Customer is frustrated about paying for unused service",
+     "flow": [
+      "Customer complains that they have barely used the service for months.",
+      "Customer asks how much they are paying and when the next renewal is.",
+      "Agent provides the known billing information.",
+      "Customer asks to cancel the subscription.",
+      "Agent cancels and confirms it."
+     ],
+     "tools": [
+      "cancel_subscription"
+     ]
+    },
+    {
+     "id": "sub_04",
+     "title": "Customer is temporarily away and pauses subscription",
+     "flow": [
+      "Customer says they will not be using the service for some time.",
+      "Customer asks whether the subscription is currently active.",
+      "Agent confirms the status.",
+      "Customer asks to pause it.",
+      "Agent pauses the subscription and confirms the action."
+     ],
+     "tools": [
+      "pause_subscription"
+     ]
+    },
+    {
+     "id": "sub_05",
+     "title": "Phone number and email both outdated",
+     "flow": [
+      "Customer says both contact details on the account are old.",
+      "Customer gives a new phone number.",
+      "Agent updates and confirms it.",
+      "Customer gives a new email address.",
+      "Agent updates and confirms that as well."
+     ],
+     "tools": [
+      "update_contact_number",
+      "update_email_address"
+     ]
+    },
+    {
+     "id": "sub_06",
+     "title": "Customer cannot remember registered email",
+     "flow": [
+      "Customer asks which email address is attached to the account.",
+      "Agent provides the appropriate known account detail.",
+      "Customer says they no longer use that email and provides a new one.",
+      "Agent updates and confirms it."
+     ],
+     "tools": [
+      "update_email_address"
+     ]
+    },
+    {
+     "id": "sub_07",
+     "title": "Renewal leads to cancellation and refund request",
+     "flow": [
+      "Customer asks when the plan renewed.",
+      "Agent gives the known renewal details.",
+      "Customer says they did not intend to continue the subscription.",
+      "Customer asks to cancel it.",
+      "Agent cancels the subscription.",
+      "Customer also asks for a refund.",
+      "Agent submits the refund request and confirms both actions."
+     ],
+     "tools": [
+      "cancel_subscription",
+      "request_refund"
+     ]
+    },
+    {
+     "id": "sub_08",
+     "title": "Parent now manages the account",
+     "flow": [
+      "Customer explains that their parent now primarily uses the account.",
+      "Customer asks which phone number is currently registered.",
+      "Agent provides the known account information.",
+      "Customer provides the parent's number.",
+      "Agent updates and confirms it."
+     ],
+     "tools": [
+      "update_contact_number"
+     ]
+    },
+    {
+     "id": "sub_09",
+     "title": "Customer wants a very concise answer",
+     "flow": [
+      "Customer says they have already contacted support and do not want a long explanation.",
+      "Customer asks only for the current plan price and next renewal date.",
+      "Agent answers both directly.",
+      "Customer asks whether the subscription is active.",
+      "Agent answers concisely."
+     ]
+    },
+    {
+     "id": "sub_10",
+     "title": "Customer misunderstands billing frequency",
+     "flow": [
+      "Customer says they thought the subscription was billed monthly.",
+      "Agent tells them the actual known billing cycle and amount.",
+      "Customer asks when the next renewal happens.",
+      "Agent provides the renewal date.",
+      "Customer realizes the misunderstanding and ends the call."
+     ]
+    },
+    {
+     "id": "sub_11",
+     "title": "Refund request after frustrating charge",
+     "flow": [
+      "Customer is upset about a recent subscription charge.",
+      "Agent confirms the known billing amount and renewal date.",
+      "Customer explains that they no longer use the service.",
+      "Customer asks for a refund request.",
+      "Agent submits and confirms it without promising approval or a specific amount."
+     ],
+     "tools": [
+      "request_refund"
+     ]
+    },
+    {
+     "id": "sub_12",
+     "title": "Contact update followed by cancellation",
+     "flow": [
+      "Customer says the phone number attached to the account is old.",
+      "Customer provides a new phone number.",
+      "Agent updates it.",
+      "Customer then says they also want the subscription cancelled.",
+      "Agent cancels it and confirms both actions."
+     ],
+     "tools": [
+      "update_contact_number",
+      "cancel_subscription"
+     ]
+    },
+    {
+     "id": "sub_13",
+     "title": "Customer checks account before deciding what to do",
+     "flow": [
+      "Customer asks which plan they have, how much it costs and when it renews.",
+      "Agent provides the three known facts.",
+      "Customer complains that the price feels high.",
+      "Agent acknowledges the frustration without pushing a particular action.",
+      "No write is performed."
+     ]
+    },
+    {
+     "id": "sub_14",
+     "title": "Elderly customer confused about plan details",
+     "flow": [
+      "Customer asks for help understanding what they are paying for.",
+      "Agent confirms the account and provides the plan details slowly.",
+      "Customer asks when the subscription will renew next.",
+      "Agent provides the known renewal date.",
+      "Customer thanks the agent and ends the call."
+     ]
+    },
+    {
+     "id": "sub_15",
+     "title": "Customer updating phone number after losing SIM card",
+     "flow": [
+      "Customer explains they lost their SIM card and need to update their number.",
+      "Agent confirms the account identity.",
+      "Agent provides the current registered contact number.",
+      "Customer provides the new phone number for the account.",
+      "Agent updates the contact number and confirms it."
+     ],
+     "tools": [
+      "update_contact_number"
+     ]
+    },
+    {
+     "id": "sub_16",
+     "title": "Anxious customer updating details before a renewal deadline",
+     "flow": [
+      "Customer expresses anxiety about missing a renewal notification.",
+      "Agent provides the current renewal date and billing details.",
+      "Customer provides a new email address to ensure they receive the alert.",
+      "Agent updates and confirms the new email.",
+      "Customer provides a new phone number for additional security.",
+      "Agent updates and confirms the new phone number."
+     ],
+     "tools": [
+      "update_email_address",
+      "update_contact_number"
+     ]
+    },
+    {
+     "id": "sub_17",
+     "title": "Customer requesting quick billing and payment summary",
+     "flow": [
+      "Customer asks for a quick summary of their billing status.",
+      "Agent confirms the account and provides the billing details.",
+      "Customer asks which payment method is currently linked.",
+      "Agent provides the known payment method.",
+      "Customer confirms they have the information and hangs up."
+     ]
+    },
+    {
+     "id": "sub_18",
+     "title": "Elderly customer slowly updating email address",
+     "flow": [
+      "Customer explains they have a new email address they want to use.",
+      "Agent asks for the new email address and asks the customer to speak slowly.",
+      "Customer dictates the new email address.",
+      "Agent updates the email address and confirms it by repeating it back.",
+      "Customer expresses satisfaction and ends the call."
+     ],
+     "tools": [
+      "update_email_address"
+     ]
+    },
+    {
+     "id": "sub_19",
+     "title": "Helping family member pause subscription during travel",
+     "flow": [
+      "Customer calls to manage the subscription for their sibling.",
+      "Agent confirms the account details and current plan.",
+      "Customer explains the sibling is traveling and won't use the service.",
+      "Customer asks to pause the subscription.",
+      "Agent pauses the subscription and confirms it."
+     ],
+     "tools": [
+      "pause_subscription"
+     ]
+    },
+    {
+     "id": "sub_20",
+     "title": "New user confused about account and billing",
+     "flow": [
+      "Customer says they are new and cannot find their plan details in the app.",
+      "Agent provides the known plan and billing details.",
+      "Customer realizes their email was entered incorrectly and provides a new one.",
+      "Agent updates and confirms the email address.",
+      "Customer decides to pause the subscription until they learn the app.",
+      "Agent pauses the subscription and confirms it."
+     ],
+     "tools": [
+      "pause_subscription",
+      "update_email_address"
+     ]
+    },
+    {
+     "id": "sub_21",
+     "title": "New user cancels after finding app too complex",
+     "flow": [
+      "Customer says they just signed up but find the app interface too confusing to use.",
+      "Agent confirms the account and the current subscription plan.",
+      "Customer asks to stop the service immediately.",
+      "Agent cancels the subscription and confirms it."
+     ],
+     "tools": [
+      "cancel_subscription"
+     ]
+    },
+    {
+     "id": "sub_22",
+     "title": "Updating all contact info before pausing account",
+     "flow": [
+      "Customer states they are updating their personal records.",
+      "Customer provides a new contact phone number.",
+      "Agent updates and confirms the phone number.",
+      "Customer provides a new email address.",
+      "Agent updates and confirms the email address.",
+      "Customer asks to pause the subscription for a while.",
+      "Agent pauses the subscription and confirms it."
+     ],
+     "tools": [
+      "update_contact_number",
+      "update_email_address",
+      "pause_subscription"
+     ]
+    },
+    {
+     "id": "sub_23",
+     "title": "First-time user inquiring about renewal and payment method",
+     "flow": [
+      "Customer says they are confused about how the digital subscription works.",
+      "Agent confirms the account identity.",
+      "Customer asks which payment method is currently linked.",
+      "Agent provides the known payment method.",
+      "Customer asks when the next charge will occur.",
+      "Agent provides the known renewal details."
+     ]
+    }
+   ]
+  },
+  {
+   "agent_type": "airport_ticket_counter",
+   "brand_context": "Air India-style airport ticket counter",
+   "distribution": 0.167,
+   "tools": {
+    "static_read": [
+     "get_booking_details",
+     "get_flight_details",
+     "get_passenger_details",
+     "get_seat_details",
+     "get_baggage_details",
+     "get_contact_details",
+     "get_meal_details",
+     "get_connection_details"
+    ],
+    "static_write": [
+     "update_contact_number",
+     "update_email_address",
+     "request_ticket_cancellation",
+     "request_refund"
+    ]
+   },
+   "scenarios": [
+    {
+     "id": "air_01",
+     "title": "Late and anxious passenger asks for gate and boarding time",
+     "flow": [
+      "Passenger arrives at the counter in a hurry and says they may be late.",
+      "Agent confirms the PNR.",
+      "Passenger confirms.",
+      "Agent gives the known gate, boarding time and departure time.",
+      "Passenger asks whether boarding has enough time remaining.",
+      "Agent clearly restates the known timings without inventing live operational information."
+     ]
+    },
+    {
+     "id": "air_02",
+     "title": "Passenger confused between boarding and departure time",
+     "flow": [
+      "Passenger asks whether the time on their ticket is boarding time or departure time.",
+      "Agent confirms the booking.",
+      "Agent explains the stored boarding and departure times separately.",
+      "Passenger repeats the boarding time to make sure they understood.",
+      "Agent confirms."
+     ]
+    },
+    {
+     "id": "air_03",
+     "title": "Elderly passenger needs slow, clear guidance",
+     "flow": [
+      "Passenger asks for the gate and seat details and seems confused.",
+      "Agent explains the gate, boarding time and seat slowly and clearly.",
+      "Passenger asks again which terminal they need.",
+      "Agent repeats the terminal concisely and politely."
+     ]
+    },
+    {
+     "id": "air_04",
+     "title": "Passenger checks seat and whether it is a window seat",
+     "flow": [
+      "Passenger asks for their seat number.",
+      "Agent confirms the booking and gives the seat.",
+      "Passenger asks whether it is a window or aisle seat.",
+      "Agent answers from the known seat metadata."
+     ]
+    },
+    {
+     "id": "air_05",
+     "title": "Passenger anxious about baggage allowance",
+     "flow": [
+      "Passenger says they have several bags and are worried about the allowance.",
+      "Agent confirms the booking.",
+      "Agent gives the known checked baggage and cabin baggage allowances.",
+      "Passenger asks one follow-up to make sure the two limits are separate.",
+      "Agent clarifies them."
+     ]
+    },
+    {
+     "id": "air_06",
+     "title": "Passenger wants to verify checked baggage count",
+     "flow": [
+      "Passenger says they handed over bags and wants to make sure the record is correct.",
+      "Agent confirms the booking.",
+      "Agent tells them the known checked baggage count.",
+      "Passenger confirms that matches what they expected."
+     ]
+    },
+    {
+     "id": "air_07",
+     "title": "Passenger confused about connecting flight",
+     "flow": [
+      "Passenger says they have an onward connection and are unsure about the next flight.",
+      "Agent confirms the booking.",
+      "Agent gives the known onward flight number, departure time and terminal.",
+      "Passenger asks how the connection fits with the first flight timing.",
+      "Agent explains the known itinerary without promising live connection outcomes."
+     ]
+    },
+    {
+     "id": "air_08",
+     "title": "Passenger does not remember flight number",
+     "flow": [
+      "Passenger gives their PNR and destination but says they cannot remember the flight number.",
+      "Agent identifies the booking.",
+      "Agent gives the flight number, departure time, terminal and gate.",
+      "Passenger confirms they now know where to go."
+     ]
+    },
+    {
+     "id": "air_09",
+     "title": "Passenger gives wrong PNR and corrects it",
+     "flow": [
+      "Passenger begins giving a PNR.",
+      "Passenger realizes they read it incorrectly and gives the corrected PNR.",
+      "Agent uses the corrected booking reference.",
+      "Passenger asks for the boarding time and gate.",
+      "Agent provides the known details."
+     ]
+    },
+    {
+     "id": "air_10",
+     "title": "International traveller updates phone number",
+     "flow": [
+      "Passenger says the phone number on the booking will not be usable during travel.",
+      "Passenger provides another contact number.",
+      "Agent updates the number.",
+      "Agent repeats the final number for confirmation."
+     ],
+     "tools": [
+      "update_contact_number"
+     ]
+    },
+    {
+     "id": "air_11",
+     "title": "Passenger updates both phone and email",
+     "flow": [
+      "Passenger says both contact details on the booking are outdated.",
+      "Passenger gives a new phone number.",
+      "Agent updates and confirms it.",
+      "Passenger gives a new email address.",
+      "Agent updates and confirms that as well."
+     ],
+     "tools": [
+      "update_contact_number",
+      "update_email_address"
+     ]
+    },
+    {
+     "id": "air_12",
+     "title": "Passenger checks meal preference",
+     "flow": [
+      "Passenger asks whether their requested meal preference is on the booking.",
+      "Agent confirms the booking.",
+      "Agent tells them the known meal preference.",
+      "Passenger asks one clarification about what is currently recorded.",
+      "Agent repeats the stored preference without making availability claims."
+     ]
+    },
+    {
+     "id": "air_13",
+     "title": "Passenger frustrated about itinerary but only needs facts",
+     "flow": [
+      "Passenger complains that the travel schedule is inconvenient.",
+      "Agent acknowledges the frustration.",
+      "Passenger asks for departure time, boarding time, gate and connection details.",
+      "Agent walks through the known information calmly.",
+      "No change or dynamic lookup is offered."
+     ]
+    },
+    {
+     "id": "air_14",
+     "title": "Passenger decides not to travel",
+     "flow": [
+      "Passenger says they will not be able to take the flight.",
+      "Agent confirms the PNR and flight details.",
+      "Passenger asks for the ticket to be cancelled.",
+      "Agent submits the cancellation request.",
+      "Agent confirms that the request has been made."
+     ],
+     "tools": [
+      "request_ticket_cancellation"
+     ]
+    },
+    {
+     "id": "air_15",
+     "title": "Ticket cancellation and refund request together",
+     "flow": [
+      "Passenger says they cannot travel and asks to cancel the ticket.",
+      "Agent confirms the booking and submits the cancellation request.",
+      "Passenger then asks for a refund.",
+      "Agent submits the refund request.",
+      "Agent confirms both requests without quoting an unknown refund amount or timeline."
+     ],
+     "tools": [
+      "request_ticket_cancellation",
+      "request_refund"
+     ]
+    },
+    {
+     "id": "air_16",
+     "title": "Refund request for already cancelled ticket",
+     "flow": [
+      "Passenger says the ticket has already been cancelled and asks about getting the money back.",
+      "Agent confirms the PNR and known booking status.",
+      "Passenger explicitly asks for a refund request.",
+      "Agent submits the request.",
+      "Agent confirms it without inventing approval, amount or processing time."
+     ],
+     "tools": [
+      "request_refund"
+     ]
+    },
+    {
+     "id": "air_17",
+     "title": "Passenger worried about a short connection",
+     "flow": [
+      "Passenger says the connection looks very short and is worried about making it.",
+      "Agent gives the known arrival and onward departure times.",
+      "Passenger asks for the onward terminal and flight number.",
+      "Agent provides them.",
+      "Agent acknowledges the concern without claiming the connection is guaranteed."
+     ]
+    },
+    {
+     "id": "air_18",
+     "title": "Passenger requests refund for accidental double payment",
+     "flow": [
+      "Passenger asks about a duplicate charge on their booking.",
+      "Agent confirms the PNR and booking details.",
+      "Passenger provides the reference ID and explains it was a double payment.",
+      "Agent submits the refund request for that reference ID.",
+      "Passenger asks when the money will arrive.",
+      "Agent states they do not have the timeline and only that the request is submitted."
+     ],
+     "tools": [
+      "request_refund"
+     ]
+    },
+    {
+     "id": "air_19",
+     "title": "Business traveller requests brief contact number update",
+     "flow": [
+      "Passenger asks for a quick update to their phone number.",
+      "Agent confirms the PNR.",
+      "Passenger provides the new phone number and asks for no small talk.",
+      "Agent updates the contact number and confirms the new number.",
+      "Passenger asks for the flight departure time.",
+      "Agent provides the known departure time."
+     ],
+     "tools": [
+      "update_contact_number"
+     ]
+    },
+    {
+     "id": "air_20",
+     "title": "Passenger cancels trip and updates contact info",
+     "flow": [
+      "Passenger says they cannot travel and wants to cancel.",
+      "Agent confirms the PNR and passenger details.",
+      "Passenger requests ticket cancellation.",
+      "Agent confirms the ticket is cancelled.",
+      "Passenger asks for a refund and provides the reference ID and reason.",
+      "Agent submits the refund request.",
+      "Passenger provides a new email address for future records.",
+      "Agent updates the email address and confirms the new email."
+     ],
+     "tools": [
+      "request_ticket_cancellation",
+      "request_refund",
+      "update_email_address"
+     ]
+    },
+    {
+     "id": "air_21",
+     "title": "Passenger updates email and requests refund for service charge",
+     "flow": [
+      "Passenger provides PNR and asks for a quick update to their email.",
+      "Agent confirms the PNR and updates the email to the new address provided.",
+      "Passenger asks about a specific charge on their booking.",
+      "Agent provides the known charge details.",
+      "Passenger requests a refund for that charge and provides the reason.",
+      "Agent confirms the refund request has been submitted."
+     ],
+     "tools": [
+      "update_email_address",
+      "request_refund"
+     ]
+    },
+    {
+     "id": "air_22",
+     "title": "Student passenger updating email for itinerary delivery",
+     "flow": [
+      "Passenger explains they are a student and needs their flight details sent to a new email.",
+      "Agent confirms the booking details.",
+      "Passenger provides the new email address.",
+      "Agent updates the registered email and confirms the new address.",
+      "Passenger asks for the flight departure time.",
+      "Agent provides the known departure time."
+     ],
+     "tools": [
+      "update_email_address"
+     ]
+    },
+    {
+     "id": "air_23",
+     "title": "Passenger cancels flight and requests refund for baggage fee",
+     "flow": [
+      "Passenger provides the PNR to cancel their upcoming trip.",
+      "Agent confirms the booking details and performs the ticket cancellation.",
+      "Passenger asks for a refund specifically for the baggage charge they paid.",
+      "Passenger provides the reference ID for the charge and the reason for the refund.",
+      "Agent submits the refund request and repeats the reference ID."
+     ],
+     "tools": [
+      "request_ticket_cancellation",
+      "request_refund"
+     ]
+    },
+    {
+     "id": "air_24",
+     "title": "Busy parent cancelling flight due to family emergency",
+     "flow": [
+      "Passenger provides PNR and explains they cannot travel due to a family emergency.",
+      "Agent confirms the passenger details.",
+      "Passenger asks to cancel the ticket immediately.",
+      "Agent cancels the ticket and confirms the PNR used.",
+      "Passenger asks for the known baggage details for their records.",
+      "Agent provides the known baggage allowance."
+     ],
+     "tools": [
+      "request_ticket_cancellation"
+     ]
+    },
+    {
+     "id": "air_25",
+     "title": "Hurried passenger verifying flight and connection details",
+     "flow": [
+      "Passenger arrives at the counter and asks for their flight number and departure time.",
+      "Agent confirms the PNR and provides the flight details.",
+      "Passenger asks for the details of their connecting flight.",
+      "Agent provides the known connection details.",
+      "Passenger thanks the agent and leaves."
+     ]
+    },
+    {
+     "id": "air_26",
+     "title": "Elderly passenger verifying meal and baggage details slowly",
+     "flow": [
+      "Passenger asks for help checking their meal preference.",
+      "Agent confirms the PNR and slowly states the registered meal detail.",
+      "Passenger asks if they can check their baggage allowance as well.",
+      "Agent provides the known baggage details in a clear, slow manner.",
+      "Passenger confirms they have understood everything."
+     ]
+    },
+    {
+     "id": "air_27",
+     "title": "Business traveller quickly verifies connection and meal",
+     "flow": [
+      "Passenger in a rush between meetings asks for their connection details.",
+      "Agent confirms the PNR and provides the connection flight and city.",
+      "Passenger asks what meal is currently listed for the long haul.",
+      "Agent reads the known meal details.",
+      "Passenger asks if the meal can be changed to vegan.",
+      "Agent says they do not have the option to change meals and only know the current record."
+     ]
+    }
+   ]
+  },
+  {
+   "agent_type": "bank_card_support",
+   "brand_context": "HDFC/ICICI-style bank credit and debit card helpline",
+   "distribution": 0.123,
+   "tools": {
+    "static_read": [
+     "get_card_status",
+     "get_card_details",
+     "get_recent_transactions",
+     "get_statement_details",
+     "get_reward_points",
+     "get_contact_details"
+    ],
+    "static_write": [
+     "block_card",
+     "raise_transaction_dispute",
+     "request_card_replacement",
+     "update_contact_number",
+     "update_email_address"
+    ]
+   },
+   "scenarios": [
+    {
+     "id": "bank_01",
+     "title": "Direct request for card replacement due to damage",
+     "flow": [
+      "Customer asks if their card is still active.",
+      "Agent confirms card status and the last 4 digits.",
+      "Customer says the card is physically damaged and needs a new one.",
+      "Customer provides the delivery address.",
+      "Agent requests the card replacement for the given address."
+     ],
+     "tools": [
+      "request_card_replacement"
+     ]
+    },
+    {
+     "id": "bank_02",
+     "title": "Worried customer updates contact details for alerts",
+     "flow": [
+      "Customer expresses worry about not receiving transaction alerts.",
+      "Agent confirms the card ending in the known details.",
+      "Customer provides a new mobile number for registration.",
+      "Agent updates the contact number and confirms the new number.",
+      "Customer provides a new email address for secure notifications.",
+      "Agent updates the email address and confirms the new email."
+     ],
+     "tools": [
+      "update_contact_number",
+      "update_email_address"
+     ]
+    },
+    {
+     "id": "bank_03",
+     "title": "Quick check of reward points and last transactions",
+     "flow": [
+      "Customer asks for their current reward points balance.",
+      "Agent confirms the card last 4 digits and provides the reward points.",
+      "Customer asks for the list of the most recent transactions.",
+      "Agent reads the known recent transactions.",
+      "Customer thanks the agent and ends the call."
+     ]
+    },
+    {
+     "id": "bank_04",
+     "title": "Urgent card block while traveling abroad",
+     "flow": [
+      "Customer calls from a noisy airport saying their card is lost.",
+      "Agent confirms the card's last 4 digits.",
+      "Customer asks to block the card immediately.",
+      "Agent blocks the card and confirms the action."
+     ],
+     "tools": [
+      "block_card"
+     ]
+    },
+    {
+     "id": "bank_05",
+     "title": "Replacement request after checking statement details",
+     "flow": [
+      "Customer asks for the statement details of their card.",
+      "Agent confirms the card last 4 digits and provides the statement details.",
+      "Customer mentions the card has stopped working at ATMs.",
+      "Customer asks for a replacement card to be sent to their home.",
+      "Customer provides the precise home address.",
+      "Agent requests the card replacement for that address."
+     ],
+     "tools": [
+      "request_card_replacement"
+     ]
+    },
+    {
+     "id": "bank_06",
+     "title": "Hurry call to verify registered contact information",
+     "flow": [
+      "Customer calls in a rush to verify which phone number and email are linked to the card.",
+      "Agent confirms the card's last 4 digits.",
+      "Customer confirms the identifier.",
+      "Agent provides the registered contact phone number from the known facts.",
+      "Customer asks for the registered email address.",
+      "Agent provides the registered email address from the known facts."
+     ]
+    },
+    {
+     "id": "bank_07",
+     "title": "Card misplaced by first-time app user",
+     "flow": [
+      "Customer explains they lost their card and are confused by the app options.",
+      "Agent confirms the card ending.",
+      "Customer asks to permanently block the card.",
+      "Agent blocks the card and confirms the last 4 digits.",
+      "Customer requests a new card be sent to their home address in Mumbai.",
+      "Agent requests the replacement card to the provided Mumbai address."
+     ],
+     "tools": [
+      "block_card",
+      "request_card_replacement"
+     ]
+    },
+    {
+     "id": "bank_08",
+     "title": "Student disputes an unknown subscription charge",
+     "flow": [
+      "Customer says they are a student and noticed a charge they don't recognize.",
+      "Agent confirms the card ending and lists the recent transactions.",
+      "Customer identifies a specific transaction ID as unauthorized.",
+      "Customer asks to raise a dispute for that transaction due to a double charge.",
+      "Agent registers the dispute for the specific transaction ID."
+     ],
+     "tools": [
+      "raise_transaction_dispute"
+     ]
+    },
+    {
+     "id": "bank_09",
+     "title": "Phone lost and card security concerns",
+     "flow": [
+      "Customer says their phone was stolen and they are worried about their card.",
+      "Agent confirms the card ending.",
+      "Customer asks to block the card immediately.",
+      "Agent blocks the card and confirms the last 4 digits.",
+      "Customer asks to change the registered mobile number to a new SIM.",
+      "Agent updates the contact number to the new phone number provided."
+     ],
+     "tools": [
+      "block_card",
+      "update_contact_number"
+     ]
+    },
+    {
+     "id": "bank_10",
+     "title": "Late night call for fraud and replacement",
+     "flow": [
+      "Customer calls late at night reporting a stolen card.",
+      "Agent confirms the card ending and blocks the card permanently.",
+      "Customer identifies a specific transaction from the recent list as fraudulent.",
+      "Agent registers the dispute for that transaction ID and reason.",
+      "Customer asks for a new card to be sent to their home address.",
+      "Agent requests the address, records it, and confirms the replacement request."
+     ],
+     "tools": [
+      "block_card",
+      "raise_transaction_dispute",
+      "request_card_replacement"
+     ]
+    },
+    {
+     "id": "bank_11",
+     "title": "Annoyed customer updates phone after failed verification",
+     "flow": [
+      "Customer expresses frustration that their old number is still on file.",
+      "Agent confirms the identity of the card using the last 4 digits.",
+      "Customer provides the new phone number.",
+      "Agent updates the registered contact number.",
+      "Agent confirms the update with the new number."
+     ],
+     "tools": [
+      "update_contact_number"
+     ]
+    },
+    {
+     "id": "bank_12",
+     "title": "Hurry call to check card details for booking",
+     "flow": [
+      "Customer calls in a rush to get specific card details for a hotel booking.",
+      "Agent confirms the card identity using the last 4 digits.",
+      "Customer asks for the card type and limit details.",
+      "Agent provides the known card details.",
+      "Customer asks for the current balance from the statement details.",
+      "Agent provides the known statement balance."
+     ]
+    },
+    {
+     "id": "bank_13",
+     "title": "Annoyed customer updates email after communication failure",
+     "flow": [
+      "Customer complains about not receiving statements via email.",
+      "Agent confirms the card identifier by stating the known last four digits.",
+      "Customer confirms and expresses frustration.",
+      "Customer provides a new email address.",
+      "Agent updates the email address.",
+      "Agent confirms the update with the new email address."
+     ],
+     "tools": [
+      "update_email_address"
+     ]
+    },
+    {
+     "id": "bank_14",
+     "title": "Late night call to block card after finding it missing",
+     "flow": [
+      "Customer calls late at night realizing their wallet is gone.",
+      "Agent confirms the card last 4 digits.",
+      "Customer confirms the card.",
+      "Customer asks to block the card permanently.",
+      "Agent blocks the card and confirms the action."
+     ],
+     "tools": [
+      "block_card"
+     ]
+    },
+    {
+     "id": "bank_15",
+     "title": "Organized caller verifying statement details for tax filing",
+     "flow": [
+      "Customer calls to verify specific details for their tax records.",
+      "Agent confirms the card last 4 digits.",
+      "Customer confirms the card.",
+      "Customer asks for the known statement details.",
+      "Agent provides the statement details.",
+      "Customer asks for the registered email address to verify where the PDF was sent.",
+      "Agent gives the known email address."
+     ]
+    },
+    {
+     "id": "bank_16",
+     "title": "Noisy line call to dispute charge and update email",
+     "flow": [
+      "Customer calls from a noisy street to report an unknown charge.",
+      "Agent identifies the card by its last 4 digits and lists recent transactions.",
+      "Customer identifies a specific transaction ID and asks to dispute it.",
+      "Agent registers the dispute for that transaction ID with the provided reason.",
+      "Customer asks to change their registered email address to a new one.",
+      "Agent updates the email address and confirms the new email."
+     ],
+     "tools": [
+      "raise_transaction_dispute",
+      "update_email_address"
+     ]
+    },
+    {
+     "id": "bank_17",
+     "title": "Annoyed customer blocks lost card and updates phone",
+     "flow": [
+      "Customer calls angrily stating their card was stolen.",
+      "Agent confirms the card ending in 4 digits.",
+      "Customer demands to block the card immediately.",
+      "Agent blocks the card permanently.",
+      "Customer asks for a replacement card to be sent to their home address.",
+      "Agent requests the replacement card for the provided address.",
+      "Customer says their phone number has changed and provides the new one.",
+      "Agent updates the contact phone number and confirms it."
+     ],
+     "tools": [
+      "block_card",
+      "request_card_replacement",
+      "update_contact_number"
+     ]
+    },
+    {
+     "id": "bank_18",
+     "title": "Worried customer disputes charge then blocks card",
+     "flow": [
+      "Customer calls worried about a suspicious transaction.",
+      "Agent confirms the card details and reads the recent transaction list.",
+      "Customer provides a transaction ID and asks to dispute it.",
+      "Agent registers the dispute for that transaction.",
+      "Customer decides it is safer to just block the card entirely.",
+      "Agent blocks the card ending in the known 4 digits."
+     ],
+     "tools": [
+      "raise_transaction_dispute",
+      "block_card"
+     ]
+    },
+    {
+     "id": "bank_19",
+     "title": "Confused new user asking about card status",
+     "flow": [
+      "Customer asks if their new card is active or still pending.",
+      "Agent confirms the card ending and provides the known card status.",
+      "Customer asks for the registered contact details to see where alerts go.",
+      "Agent provides the known contact details.",
+      "Customer expresses relief and ends the call."
+     ]
+    },
+    {
+     "id": "bank_20",
+     "title": "Customer disputes a duplicate transaction charge",
+     "flow": [
+      "Customer calls concerned about being charged twice for one purchase.",
+      "Agent identifies the card and lists the recent transactions.",
+      "Customer points out the duplicate transaction ID.",
+      "Customer requests to dispute the duplicate charge.",
+      "Agent registers the dispute for that transaction ID."
+     ],
+     "tools": [
+      "raise_transaction_dispute"
+     ]
+    }
+   ]
+  },
+  {
+   "agent_type": "telecom_prepaid_support",
+   "brand_context": "Jio/Airtel-style prepaid mobile operator",
+   "distribution": 0.123,
+   "tools": {
+    "static_read": [
+     "get_plan_details",
+     "get_balance_details",
+     "get_validity_details",
+     "get_recharge_history",
+     "get_active_services",
+     "get_available_packs",
+     "get_sim_details"
+    ],
+    "static_write": [
+     "deactivate_service",
+     "activate_pack",
+     "block_sim",
+     "update_alternate_number",
+     "request_refund"
+    ]
+   },
+   "scenarios": [
+    {
+     "id": "tel_01",
+     "title": "Calm request to stop VAS and claim refund",
+     "flow": [
+      "Customer asks which value-added services are active on their number.",
+      "Agent confirms the mobile number and lists the active services.",
+      "Customer asks to deactivate the 'Cricket Alerts' service.",
+      "Agent deactivates the 'Cricket Alerts' service.",
+      "Customer provides a reference ID and asks for a refund for the last charge.",
+      "Agent submits the refund request and confirms the reference ID."
+     ],
+     "tools": [
+      "deactivate_service",
+      "request_refund"
+     ]
+    },
+    {
+     "id": "tel_02",
+     "title": "Checking balance and validity for a parent",
+     "flow": [
+      "Customer calls to check the status of their father's prepaid SIM.",
+      "Agent confirms the mobile number and identity.",
+      "Customer asks for the current main balance.",
+      "Agent provides the known balance details.",
+      "Customer asks when the current plan expires.",
+      "Agent provides the known validity details."
+     ]
+    },
+    {
+     "id": "tel_03",
+     "title": "Annoyed customer switches packs and stops service",
+     "flow": [
+      "Customer complains about a service they didn't want and asks what is active.",
+      "Agent confirms the number and lists the active services.",
+      "Customer demands to deactivate the 'Daily Horoscope' service.",
+      "Agent deactivates the 'Daily Horoscope' service.",
+      "Customer asks to activate a specific data-booster pack from the available list.",
+      "Agent activates the pack using the main balance and confirms."
+     ],
+     "tools": [
+      "deactivate_service",
+      "activate_pack"
+     ]
+    },
+    {
+     "id": "tel_04",
+     "title": "Worried customer blocks SIM after phone theft",
+     "flow": [
+      "Customer calls in a panic because their phone was stolen.",
+      "Customer expresses worry about someone using their balance.",
+      "Agent confirms the mobile number to be blocked.",
+      "Customer confirms the number.",
+      "Agent blocks the SIM and confirms the action."
+     ],
+     "tools": [
+      "block_sim"
+     ]
+    },
+    {
+     "id": "tel_05",
+     "title": "Managing caller tune for a family member",
+     "flow": [
+      "Customer calls to manage the services on their daughter's number.",
+      "Agent confirms the mobile number and lists the active services.",
+      "Customer identifies an active 'Premium Caller Tune' that they want to stop.",
+      "Customer asks to deactivate the 'Premium Caller Tune'.",
+      "Agent deactivates the service and confirms."
+     ],
+     "tools": [
+      "deactivate_service"
+     ]
+    },
+    {
+     "id": "tel_06",
+     "title": "Late night check on active data services",
+     "flow": [
+      "Customer calls late at night to check if their data is still active.",
+      "Agent confirms the mobile number.",
+      "Agent provides the known active services list.",
+      "Customer asks about the specific data plan details.",
+      "Agent gives the known plan details."
+     ]
+    },
+    {
+     "id": "tel_07",
+     "title": "Hurried professional checking SIM details and recharge history",
+     "flow": [
+      "Customer asks to quickly verify the registered SIM details.",
+      "Agent confirms the mobile number and provides the known SIM details.",
+      "Customer asks about the most recent recharges made.",
+      "Agent provides the known recharge history.",
+      "Customer asks for the current plan name.",
+      "Agent provides the known plan details."
+     ]
+    },
+    {
+     "id": "tel_08",
+     "title": "Refund for failed recharge and updating contact number",
+     "flow": [
+      "Customer calls to report a failed recharge and provides the reference ID.",
+      "Agent confirms the mobile number.",
+      "Customer asks to submit a refund request for the failed transaction.",
+      "Agent submits the refund request and confirms the reference ID.",
+      "Customer asks to update their alternate contact number for future alerts.",
+      "Customer provides the new phone number.",
+      "Agent updates the alternate number and confirms the new digit."
+     ],
+     "tools": [
+      "request_refund",
+      "update_alternate_number"
+     ]
+    },
+    {
+     "id": "tel_09",
+     "title": "Midnight inquiry regarding recharge history",
+     "flow": [
+      "Customer calls late at night to verify a recent payment.",
+      "Agent confirms the mobile number.",
+      "Customer asks for the history of recent recharges.",
+      "Agent provides the known recharge history list.",
+      "Customer asks which specific pack was activated last.",
+      "Agent gives the name of the last activated pack from the history."
+     ]
+    },
+    {
+     "id": "tel_10",
+     "title": "Professional caller blocks SIM for security reasons",
+     "flow": [
+      "Customer identifies their mobile number for verification.",
+      "Agent confirms the number and current SIM status.",
+      "Customer explains they are upgrading to a new corporate device and want to block the old SIM for security.",
+      "Agent blocks the SIM for the provided mobile number.",
+      "Agent confirms the SIM is now blocked."
+     ],
+     "tools": [
+      "block_sim"
+     ]
+    },
+    {
+     "id": "tel_11",
+     "title": "Traveler inquiring about available data packs",
+     "flow": [
+      "Customer calls from a noisy line asking for more data options.",
+      "Agent confirms the mobile number.",
+      "Agent lists the available packs from the known facts.",
+      "Customer asks for the cost of a specific high-data pack.",
+      "Agent provides the known price for that pack."
+     ]
+    },
+    {
+     "id": "tel_12",
+     "title": "Annoyed customer reporting lost phone and updating contact",
+     "flow": [
+      "Customer calls angrily stating their phone was stolen.",
+      "Agent confirms the mobile number.",
+      "Customer demands to block the SIM immediately.",
+      "Agent blocks the SIM and confirms the action.",
+      "Customer provides a new alternate number for communication.",
+      "Agent updates the alternate number and confirms the new number."
+     ],
+     "tools": [
+      "block_sim",
+      "update_alternate_number"
+     ]
+    },
+    {
+     "id": "tel_13",
+     "title": "Direct request for data pack activation",
+     "flow": [
+      "Customer asks for the list of available data packs.",
+      "Agent provides the known available packs.",
+      "Customer chooses a specific pack and asks to activate it.",
+      "Agent activates the pack using the main balance.",
+      "Agent confirms the activation of the specific pack."
+     ],
+     "tools": [
+      "activate_pack"
+     ]
+    },
+    {
+     "id": "tel_14",
+     "title": "Elderly caller requesting SIM block and refund",
+     "flow": [
+      "Customer slowly explains that their phone is missing.",
+      "Agent confirms the mobile number.",
+      "Customer asks to block the SIM.",
+      "Agent blocks the SIM and confirms it.",
+      "Customer provides a new alternate number for their family to reach them.",
+      "Agent updates the alternate number.",
+      "Customer mentions a wrong charge and asks for a refund.",
+      "Agent submits the refund request for the reference ID and confirms all actions."
+     ],
+     "tools": [
+      "block_sim",
+      "update_alternate_number",
+      "request_refund"
+     ]
+    },
+    {
+     "id": "tel_15",
+     "title": "Confused new user activating pack and updating contact",
+     "flow": [
+      "Customer expresses confusion about using the mobile app.",
+      "Agent confirms the mobile number and provides the list of available packs.",
+      "Customer chooses a data pack from the list for activation.",
+      "Agent activates the pack and confirms it.",
+      "Customer realizes their alternate contact number is outdated.",
+      "Customer provides the new phone number.",
+      "Agent updates the alternate number and confirms the change."
+     ],
+     "tools": [
+      "activate_pack",
+      "update_alternate_number"
+     ]
+    },
+    {
+     "id": "tel_16",
+     "title": "Family member requesting refund for a wrong recharge",
+     "flow": [
+      "Customer calls on behalf of a relative regarding a recharge error.",
+      "Agent confirms the mobile number and the recharge history.",
+      "Customer identifies a specific transaction and provides the known reference ID.",
+      "Customer explains the reason for the refund request.",
+      "Agent submits the refund request and confirms the submission."
+     ],
+     "tools": [
+      "request_refund"
+     ]
+    },
+    {
+     "id": "tel_17",
+     "title": "Anxious caller activating an emergency data pack",
+     "flow": [
+      "Customer is anxious because their data has run out.",
+      "Agent confirms the mobile number and the current balance.",
+      "Agent provides the list of available data packs.",
+      "Customer selects a specific pack from the list to activate immediately.",
+      "Agent activates the pack and confirms the action."
+     ],
+     "tools": [
+      "activate_pack"
+     ]
+    },
+    {
+     "id": "tel_18",
+     "title": "Polite customer cleaning up services and adding data",
+     "flow": [
+      "Customer asks to see all currently active value-added services.",
+      "Agent confirms the mobile number and lists the known active services.",
+      "Customer asks to stop a specific service from the list.",
+      "Agent deactivates the service and confirms it.",
+      "Customer mentions a charge they disagree with and provides the known reference ID.",
+      "Agent submits the refund request and confirms the submission.",
+      "Customer asks to add a new data pack from the available list.",
+      "Agent activates the pack and confirms the final action."
+     ],
+     "tools": [
+      "deactivate_service",
+      "request_refund",
+      "activate_pack"
+     ]
+    },
+    {
+     "id": "tel_19",
+     "title": "Concise caller updates alternate contact details",
+     "flow": [
+      "Customer asks for the current alternate number on record.",
+      "Agent confirms the mobile number and provides the known alternate contact details.",
+      "Customer states the number is old and needs to be changed.",
+      "Customer provides the new phone number.",
+      "Agent updates the alternate number.",
+      "Agent confirms the update with the new phone number."
+     ],
+     "tools": [
+      "update_alternate_number"
+     ]
+    },
+    {
+     "id": "tel_20",
+     "title": "Hurried professional stops unwanted VAS service",
+     "flow": [
+      "Customer asks the agent to quickly check active services.",
+      "Agent lists the active value-added services from the facts.",
+      "Customer identifies a specific entertainment service they no longer need.",
+      "Customer asks to deactivate the service immediately as they have a meeting.",
+      "Agent deactivates the specified service.",
+      "Agent confirms the deactivation is complete."
+     ],
+     "tools": [
+      "deactivate_service"
+     ]
+    }
+   ]
+  }
+ ]
+}

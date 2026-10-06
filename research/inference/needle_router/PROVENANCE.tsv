@@ -1,0 +1,3 @@
+dest_path	source	md5 (dest)	modified
+research/inference/needle_router/example.py	laptop:~/Desktop/S2S/hinglish/hf_model_repos/needle-hinglish-router-v2/example.py (source md5 7badf1a3b6c51bc782e1fea3a7743861)	06976f9c2c355a41a2699d3a1e573d3d	modified (D-LEAN-HF: imports the pip package, downloads weights/examples via hf_hub_download): sys.path shim (NEEDLE_V2_DIR -> packages/needle_router/v2 -> HF ./needle_v2/schema); weights from argv[3] / $NEEDLE_V2_WEIGHTS / ./tuned_full.cact; usage line added
+research/inference/needle_router/requirements.txt	laptop:~/Desktop/S2S/hinglish/hf_model_repos/needle-hinglish-router-v2/requirements.txt	321ea33c57502d9ed64f44c04067411e	modified (D-LEAN-HF): + huggingface_hub, the package install line

@@ -1,0 +1,3 @@
+# pure-python unit tests run by smoke_test.sh (paths relative to research/; stdlib + numpy only, seconds each)
+eval_harness/test_vad_gate.py
+needle/n2/numconv/test_numconv.py

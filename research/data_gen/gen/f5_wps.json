@@ -1,0 +1,6 @@
+{
+ "note": "f5cs (IndicF5 code-switch) speaking rate, tts_word_units (validate.tts_word_units on text_tts) per second of turn audio (turn start..end incl. intra-turn chunk gaps), over all non-truncated turns of data/V3 (287 calls, stereo/*.json), measured 2026-10-04 by the D2 generator worker. Keyed by the Kokoro voice key that calls.jsonl `voices` carries; f5 voice in brackets (tts_backends.BACKEND_VOICES by gN). Used by v4.est_duration. V3 whole-call: 0.432 s per text_roman word.",
+ "units_per_s_by_kokoro_key": {"hm_psi": 2.868, "hf_beta": 2.742, "hm_omega": 2.537, "hf_alpha": 2.697},
+ "f5_voice": {"hm_psi": "fleurs_hi_m1559", "hf_beta": "ritu_hinglish", "hm_omega": "orato_male", "hf_alpha": "orato_female"},
+ "roman_words_per_s": {"hm_psi": 2.739, "hf_beta": 2.604, "hm_omega": 2.413, "hf_alpha": 2.582}
+}

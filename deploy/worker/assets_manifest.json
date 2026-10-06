@@ -1,0 +1,20 @@
+{
+ "comment": "S2S worker assets: baked at image build by worker/fetch_assets.py (S2S_ASSETS_FROM_HF=1), checked at every start. D-ASSETS-PUBLIC 2026-10-07: sources are the two model repos (public at release) + the public Needle engine repo, each pinned to a commit; the private shivamgupta/s2s-v4-assets is no longer used. ONLY the files below are ever downloaded (allowlist = repo + path of these entries; fetch_assets.py refuses anything else and asserts the HF download cache holds nothing else). md5/size = the files the live image :3957130716eb was built with. volume_path = layout on a RunPod network volume (optional fallback). Demo records are not an asset: common/data/records_v4.json is COPY'd from the repo.",
+ "adapter": "V4_A2 step 600 (pod1 /workspace/runs/V4_A2/checkpoints/checkpoint_000600/consolidated) = personaplex-hinglish-v4-lora root files",
+ "router": "Needle v2 (default, S2S_ROUTER=v2) = needle-hinglish-router-v2 root tuned_full.cact; Needle N1 rollback (S2S_ROUTER=n1) = n1/tuned_full.cact in the same repo",
+ "forbidden_prefixes": ["V4_A/", "V4_A2/", "V3_A/", "checkpoints/", "adapter/", "needle/", "needle_v2/", "examples/"],
+ "files": [
+  {"repo": "shivamgupta/personaplex-hinglish-v4-lora", "revision": "e59d4b046ff20cc4e547912cd28e7ff2e1ffdba9", "path": "config.json",
+   "dest": "v4_adapter/config.json", "volume_path": "v4_adapter/config.json", "size": 1567, "md5": "6c4fab737a83e36bccf9564466393849", "required": true},
+  {"repo": "shivamgupta/personaplex-hinglish-v4-lora", "revision": "e59d4b046ff20cc4e547912cd28e7ff2e1ffdba9", "path": "lora.safetensors",
+   "dest": "v4_adapter/lora.safetensors", "volume_path": "v4_adapter/lora.safetensors", "size": 387938848, "md5": "627bc77a2186e6600f27ce5657f2e038", "required": true},
+  {"repo": "shivamgupta/needle-hinglish-router-v2", "revision": "72c05177a67fe793e7a67defb7610c6c67b0339a", "path": "n1/tuned_full.cact",
+   "dest": "tuned_full.cact", "volume_path": "needle/tuned_full.cact", "size": 63437076, "md5": "92ddd0d787388b07db831a7da6114aba", "required": true},
+  {"repo": "shivamgupta/needle-hinglish-router-v2", "revision": "72c05177a67fe793e7a67defb7610c6c67b0339a", "path": "tuned_full.cact",
+   "dest": "needle_v2/tuned_full.cact", "volume_path": "needle_v2/tuned_full.cact", "size": 63437076, "md5": "5361a65ba4703689e0ff1428a8f3dea4", "required": true},
+  {"repo": "Cactus-Compute/needle3", "revision": "2ae11323dc000f5e70c49f7403efa6af12ba9e67", "path": "python/cactus_needle-3.0.2-py3-none-manylinux2014_x86_64.whl",
+   "download_size": 537236, "download_md5": "9c73b1eecf4ac7169c3ad414779110f5", "extract": "needle/libneedle3.so",
+   "dest": "NEEDLE_LIB_DIR/libneedle.so", "volume_path": "needle/libneedle.so", "size": 1295064, "md5": "679dc5705400ef795d98a37c6d738d8f", "required": true,
+   "note": "public Needle 3 engine (the wheel cactus-needle 3.0.6 itself downloads for engine 3.0.2); libneedle3.so inside it -> the package's cache path"}
+ ]
+}

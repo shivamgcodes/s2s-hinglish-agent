@@ -1,0 +1,27 @@
+{
+ "per_voice": {
+  "hf_beta": {
+   "words": 113,
+   "speech_s": 35.97,
+   "wps": 3.141
+  },
+  "hm_omega": {
+   "words": 113,
+   "speech_s": 42.98,
+   "wps": 2.629
+  },
+  "hf_alpha": {
+   "words": 113,
+   "speech_s": 41.53,
+   "wps": 2.721
+  },
+  "hm_psi": {
+   "words": 113,
+   "speech_s": 42.21,
+   "wps": 2.677
+  }
+ },
+ "lines": 8,
+ "wps_mean": 2.792,
+ "lang_a": "ok (2.10s audio, load 6.4s)"
+}

@@ -1,0 +1,25 @@
+dest_path	source	source_md5	note
+research/data_gen/bundle_v4.sh	runpod:/workspace/hinglish/bundle_v4.sh	cbf6c58bfb31bca8ce3dde0e126f7962	modified: H <- HINGLISH_ROOT, R <- RUNS_ROOT
+research/data_gen/gen/common.py	runpod:/workspace/hinglish/gen/common.py	9b739e03b4e026f6e71541751a4100bc	modified: ROOT<-env HINGLISH_ROOT (default /workspace/hinglish); GUIDE<-env HINGLISH_GUIDANCE or ../guidance next to gen/ (was ROOT/guidance); MODEL_PATH<-env GEMMA_MODEL_PATH; VLLM_CACHE_ROOT default uses ROOT
+research/data_gen/gen/f5_wps.json	runpod:/workspace/hinglish/gen/f5_wps.json	7a6a0064a55c4370e89897a9dcb7f232	verbatim
+research/data_gen/gen/gen_loop.py	runpod:/workspace/hinglish/gen/gen_loop.py	4142331fcd4627807885d1d8044da563	verbatim
+research/data_gen/gen/generate.py	runpod:/workspace/hinglish/gen/generate.py	590db4a9c5b28c2466ab89bca87e9dd6	modified: sys.path shim: packages/hinglish_text (env HINGLISH_TEXT_PKG) for `import hindi_share`
+research/data_gen/gen/holdout_v2.py	runpod:/workspace/hinglish/gen/holdout_v2.py	016c8830ece86475edcf49a18f119c67	modified: H<-env HINGLISH_ROOT; code import path = this file's dir (was H/gen)
+research/data_gen/gen/kokoro_wps.json	runpod:/workspace/hinglish/gen/kokoro_wps.json	c5208e74349a06f36177988072a38652	verbatim
+research/data_gen/gen/make_stats.py	runpod:/workspace/hinglish/gen/make_stats.py	72fe32c5822e2c13757f3ee20bae03c9	modified: D<-env HINGLISH_ROOT
+research/data_gen/gen/make_stats_v3.py	runpod:/workspace/hinglish/gen/make_stats_v3.py	e841d2d6f9b34ae8fab115ad13bebccb	modified: D<-env HINGLISH_ROOT
+research/data_gen/gen/make_stats_v4.py	runpod:/workspace/hinglish/gen/make_stats_v4.py	c9449a24ca0910fcd48bd8cd4c1ce4b0	modified: H<-env HINGLISH_ROOT
+research/data_gen/gen/measure_kokoro_wps.py	runpod:/workspace/hinglish/gen/measure_kokoro_wps.py	ff23cd729b4b558806832c81b5315207	verbatim
+research/data_gen/gen/records.py	runpod:/workspace/hinglish/gen/records.py	f8062dcd08d0ebccead32181cc068c79	verbatim
+research/data_gen/gen/records_v2.py	runpod:/workspace/hinglish/gen/records_v2.py	4c3340fc37aef88c02d834e6899447a1	verbatim
+research/data_gen/gen/rescore_trial.py	runpod:/workspace/hinglish/gen/rescore_trial.py	2639fdaf1f4e042fae3f9c1c52ef2d90	modified: code import path = this file's dir (was /workspace/hinglish/gen) + hinglish_text shim; records path <- env HINGLISH_ROOT
+research/data_gen/gen/scenarios_v2.py	runpod:/workspace/hinglish/gen/scenarios_v2.py	621b765d8c0348b3a82feb3b8c1f9d54	verbatim
+research/data_gen/gen/test_records_v2.py	runpod:/workspace/hinglish/gen/test_records_v2.py	55ffd58a1776480c570f1a328d73d6f7	verbatim
+research/data_gen/gen/test_records_v2_repair.py	runpod:/workspace/hinglish/gen/test_records_v2_repair.py	8d2753e1b869c3bbc242f239be2473d9	verbatim
+research/data_gen/gen/v4.py	runpod:/workspace/hinglish/gen/v4.py	540c0ac4b5815a0368b5c9b995a06b7c	modified: sys.path shim: packages/hinglish_text (env HINGLISH_TEXT_PKG) for `import hindi_share`
+research/data_gen/gen/v4_post.py	runpod:/workspace/hinglish/gen/v4_post.py	d7629f7503a1580228e65dff4c699259	modified: H<-env HINGLISH_ROOT; code import path = this file's dir (was H/gen) + packages/hinglish_text shim
+research/data_gen/gen/validate.py	runpod:/workspace/hinglish/gen/validate.py	9e6a02efc5e9628535b5fe5a0014be2b	modified: sys.path shim: packages/hinglish_text (env HINGLISH_TEXT_PKG) for `import hindi_share`
+research/data_gen/gen/worker.py	runpod:/workspace/hinglish/gen/worker.py	cecc0ba474060badcb40f7cf00d1158d	modified: sys.path shim: packages/hinglish_text (env HINGLISH_TEXT_PKG) for `import hindi_share`
+research/data_gen/guidance/r1_vs_r2.md	runpod:/workspace/hinglish/guidance/r1_vs_r2.md	41acfb32b5aeaf68212b3bffa5b25217	verbatim
+research/data_gen/guidance/scenario_creation.json	runpod:/workspace/hinglish/guidance/scenario_creation.json	2c685358e31d549ec17b168948ba633b	verbatim
+research/data_gen/guidance/scenario_creation_v2.json	runpod:/workspace/hinglish/guidance/scenario_creation_v2.json	88c4f7b356b8c0c2056c230363cac59b	verbatim

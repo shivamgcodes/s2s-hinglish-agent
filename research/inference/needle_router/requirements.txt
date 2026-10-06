@@ -1,0 +1,3 @@
+cactus-needle==3.0.6
+huggingface_hub>=0.30
+# the router code: pip install "git+https://github.com/shivamgcodes/s2s-hinglish-agent#subdirectory=packages/needle_router"

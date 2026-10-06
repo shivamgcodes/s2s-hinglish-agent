@@ -1,0 +1,1347 @@
+# moshi-finetune @ 2acc879: PersonaPlex prefix/LoRA patch. Apply: git apply personaplex_prefix.patch
+diff --git a/finetune/args.py b/finetune/args.py
+index afd4406..d99fc9b 100644
+--- a/finetune/args.py
++++ b/finetune/args.py
+@@ -79,6 +79,10 @@ class TrainArgs(Serializable):
+     num_microbatches: int = 1
+ 
+     duration_sec: float = 10
++    # PersonaPlex patch: Interleaver keep_and_shift. False (upstream default, used by V1/V3 runs whose
++    # args.yaml has no such key) lets a word starting while earlier pieces are pending replace them
++    # (drops ~0.45% of V3 agent tokens); True queues the pieces and shifts them later (V4 runs).
++    keep_and_shift: bool = False
+     batch_size: int = 1
+     max_norm: float = 1.0  # Gradient clipping.
+     max_steps: int = 100  # Number of training steps.
+@@ -112,6 +116,12 @@ class TrainArgs(Serializable):
+ 
+     overwrite_run_dir: bool = False
+ 
++    # PersonaPlex patch
++    voice_codes_dir: str = "/workspace/hinglish/trainer/voice_codes"  # NATF2/NATM1 .frames.pt
++    dep_train_steps: int = 8  # depformer steps run/trained: the 8 agent codebooks
++    metrics_freq: int = 10  # rows in run_dir/metrics.csv
++    plot_freq: int = 100  # run_dir/loss.png refresh
++
+     def __post_init__(self) -> None:
+         assert getattr(self, "world_size", None) is None
+         self.world_size = int(os.environ.get("WORLD_SIZE", -1))
+diff --git a/finetune/checkpointing.py b/finetune/checkpointing.py
+index d5b7eb3..b0c3519 100644
+--- a/finetune/checkpointing.py
++++ b/finetune/checkpointing.py
+@@ -6,7 +6,8 @@ from pathlib import Path
+ import safetensors.torch
+ import torch
+ from moshi.models.lm import LMModel
+-from moshi.modules.lora import LoRALinear
++
++from . import pp_lora
+ from torch.distributed import barrier
+ from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
+ 
+@@ -33,6 +34,8 @@ class Checkpointer:
+         optimizer: torch.optim.Optimizer | None = None,
+         num_ckpt_keep: int | None = None,
+         full_finetuning: bool = False,
++        ft_embed: bool = False,
++        dep_steps: int = 8,
+     ):
+         self.model = model
+         self.optimizer = optimizer
+@@ -42,6 +45,8 @@ class Checkpointer:
+         self.num_ckpt_keep = num_ckpt_keep
+         self.full_finetuning = full_finetuning
+         self.config = config
++        self.ft_embed = ft_embed
++        self.dep_steps = dep_steps
+ 
+     @property
+     def ckpt_dir(self) -> Path:
+@@ -98,103 +103,10 @@ class Checkpointer:
+     def retrieve_save_states(
+         self, save_only_lora: bool, save_dtype: torch.dtype
+     ) -> dict[str, torch.Tensor]:
+-        assert not (save_only_lora and self.full_finetuning), (
+-            "Cannot save LoRA checkpoint as LoRA training is not enabled."
+-        )
+-
+-        # remove all potential hooks
+-        for module in self.model.modules():
+-            if isinstance(module, LoRALinear) and hasattr(module, "_merge_lora_handle"):
+-                module._merge_lora_handle.remove()  # type: ignore
+-
+-        offload_to_cpu = get_world_size() > 1
+-        if save_only_lora:
+-
+-            def is_trainable_fsdp(module: torch.nn.Module | FullyShardedDataParallel):
+-                is_fsdp = (
+-                    isinstance(module, FullyShardedDataParallel)
+-                    or get_world_size() == 1
+-                )
+-                all_params_have_grads = is_fsdp and all(
+-                    p.requires_grad for p in module.parameters()
+-                )
+-
+-                # need to make sure only lowest fsdp wrap is used
+-                is_leaf_node = is_fsdp and (
+-                    get_world_size() == 1 or len(list(module.module.children())) == 0
+-                )  # type: ignore
+-
+-                return is_fsdp and all_params_have_grads and is_leaf_node
+-
+-            # extract all modules with only trainable weights
+-            modules = {
+-                k: m for k, m in self.model.named_modules() if is_trainable_fsdp(m)
+-            }
+-
+-            states = {}
+-            for key, module in modules.items():
+-                assert (
+-                    isinstance(module, FullyShardedDataParallel)
+-                    or get_world_size() == 1
+-                ), (
+-                    "`module` should be an instance of `FullyShardedDataParallel` if `world_size > 1`"
+-                )
+-                parent_prefix = key.replace("_fsdp_wrapped_module.", "").replace(
+-                    "_checkpoint_wrapped_module.", ""
+-                )
+-                if get_world_size() > 1:
+-                    with module.summon_full_params(
+-                        module, writeback=True, offload_to_cpu=offload_to_cpu
+-                    ):
+-                        states.update(
+-                            {
+-                                f"{parent_prefix}.{k}": v.to(dtype=save_dtype)
+-                                for k, v in module.state_dict().items()
+-                            }
+-                        )
+-                else:
+-                    states.update(
+-                        {
+-                            f"{parent_prefix}.{k}": v.clone().to(dtype=save_dtype)
+-                            for k, v in module.state_dict().items()
+-                        }
+-                    )
+-        else:
+-            # merge weights if we don't just save LoRA
+-            def merge_lora(
+-                m: torch.nn.Module,
+-                destination: dict[str, torch.Tensor],
+-                prefix: str,
+-                *args,
+-            ):
+-                weight = m.merge_weight()  # type: ignore
+-                destination[prefix + "weight"] = weight
+-
+-            for module in self.model.modules():
+-                if isinstance(module, LoRALinear):
+-                    module._merge_lora_handle = module._register_state_dict_hook(
+-                        merge_lora
+-                    )
+-
+-            # make sure you have enough CPU RAM available to save the full model
+-            assert (
+-                isinstance(self.model, FullyShardedDataParallel)
+-                or get_world_size() == 1
+-            ), (
+-                "`self.model` should be an instance of `FullyShardedDataParallel` if `world_size > 1`"
+-            )
+-            if get_world_size() > 1:
+-                with self.model.summon_full_params(
+-                    self.model, writeback=True, offload_to_cpu=offload_to_cpu
+-                ):
+-                    states = self.get_non_lora_states(self.model.state_dict())
+-                    states = {k: v.to(dtype=save_dtype) for k, v in states.items()}
+-            else:
+-                states = self.get_non_lora_states(self.model.state_dict())
+-                states = {k: v.clone().to(dtype=save_dtype) for k, v in states.items()}
+-
+-        states = dict(sorted(states.items()))
+-        return states
++        # PersonaPlex: LoRA lives in torch parametrizations keyed by PersonaPlex parameter names
++        # (finetune/pp_lora.py); embedding tables are added when ft_embed.
++        assert save_only_lora and not self.full_finetuning, "PersonaPlex patch saves adapters only"
++        return pp_lora.adapter_state_dict(self.model, self.ft_embed, self.dep_steps, save_dtype)
+ 
+     @torch.no_grad()
+     def save_checkpoint(
+diff --git a/finetune/data/interleaver.py b/finetune/data/interleaver.py
+index c11ac23..2f6f1a5 100644
+--- a/finetune/data/interleaver.py
++++ b/finetune/data/interleaver.py
+@@ -4,11 +4,16 @@ import os
+ from collections import deque
+ from dataclasses import dataclass
+ from functools import reduce
++from typing import Any
+ 
+ import numpy as np
+ import sentencepiece
+ import torch
+-from moshi.conditioners import ConditionAttributes
++from moshi.models.lm import SILENCE_TOKENS, SINE_TOKENS
++from moshi.offline import wrap_with_system_tags
++
++# PersonaPlex has no moshi.conditioners; condition attributes are never used.
++ConditionAttributes = Any
+ 
+ Alignment = tuple[str, tuple[float, float], str]
+ TokenizedAlignment = tuple[list[int], tuple[float, float], str]
+@@ -18,19 +23,27 @@ TokenizedAlignment = tuple[list[int], tuple[float, float], str]
+ class Sample:
+     codes: torch.Tensor
+     condition_attributes: ConditionAttributes | None = None
++    prefix_len: int = 0  # PersonaPlex prompt-prefix frames at the start of codes (loss-masked)
+ 
+ 
+ @dataclass
+ class Batch:
+     codes: torch.Tensor
+     condition_attributes: list[ConditionAttributes] | None = None
++    prefix_len: torch.Tensor | None = None  # [B] long
+ 
+     @classmethod
+     def collate(cls, batch: list[Sample]) -> "Batch":
+-        codes = torch.cat([b.codes for b in batch])
++        # Prefixes differ in length per sample and must start at column 0 (RoPE positions and the
++        # delay pattern must match inference), so right-pad with the zero token (-1, masked).
++        L = max(b.codes.shape[-1] for b in batch)
++        codes = torch.cat(
++            [torch.nn.functional.pad(b.codes, (0, L - b.codes.shape[-1]), value=-1) for b in batch]
++        )
++        prefix_len = torch.tensor([b.prefix_len for b in batch], device=codes.device)
+         if batch[0].condition_attributes is None:
+-            return Batch(codes)
+-        return Batch(codes, [b.condition_attributes for b in batch])
++            return Batch(codes, None, prefix_len)
++        return Batch(codes, [b.condition_attributes for b in batch], prefix_len)
+ 
+ 
+ def tokenize(
+@@ -244,12 +257,75 @@ def dicho(alignment, val, i=0, j=None):
+         return dicho(alignment, val, i, k)
+ 
+ 
++VOICE_FOR_GENDER = {"f": "NATF2", "m": "NATM1"}
++
++
++class PersonaPlexPrefix:
++    """Builds the PersonaPlex system-prompt prefix as training codes [1, 17, P].
++
++    Mirrors LMGen.step_system_prompts (moshi/models/lm.py) as used by moshi/offline.py and server.py
++    (audio_silence_frame_cnt = int(0.5 * 12.5) = 6):
++      voice prompt (51 frames): text = PAD(3), agent rows = voice Mimi codes, user rows = SINE_TOKENS
++      silence (6):              text = PAD,    agent = SILENCE_TOKENS,        user = SINE_TOKENS
++      role prompt (len(ids)):   text = ids,    agent = SILENCE_TOKENS,        user = SINE_TOKENS
++      silence (6):              text = PAD,    agent = SILENCE_TOKENS,        user = SINE_TOKENS
++    ids = tokenizer.encode(wrap_with_system_tags(role_prompt)) exactly as offline.py.
++    Training codes[t] equals LMGen frame t+1 (LMGen frame 0 is overwritten by the initial token and
++    never seen), so the voice part is vf[:, 1:52] of the codes recovered from the NATF2/NATM1 .pt
++    replays (trainer/voice_codes/*.frames.pt; bit-exact re-embedding on 51/51 columns).
++    """
++
++    def __init__(self, tokenizer, voice_codes_dir: str, text_padding: int = 3, silence_frames: int = 6):
++        self.tokenizer = tokenizer
++        self.text_padding = text_padding
++        self.silence_frames = silence_frames
++        self.voice_codes = {}
++        for v in ("NATF2", "NATM1"):
++            vf = torch.load(os.path.join(voice_codes_dir, f"{v}.frames.pt"))["vf"]
++            assert vf.shape == (8, 52), vf.shape
++            self.voice_codes[v] = vf[:, 1:52].long()
++        self.silence = torch.as_tensor(SILENCE_TOKENS, dtype=torch.long).view(8, 1)
++        self.sine = torch.as_tensor(SINE_TOKENS, dtype=torch.long).view(8, 1)
++        self._cache: dict = {}
++
++    @staticmethod
++    def voice_of(data: dict) -> str:
++        v = data.get("voice_prompt")
++        if v is None:
++            v = VOICE_FOR_GENDER[data["agent_gender"]]
++        v = os.path.splitext(os.path.basename(v))[0]
++        assert v in VOICE_FOR_GENDER.values(), f"unsupported voice prompt {v}"
++        return v
++
++    def prompt_ids(self, role_prompt: str) -> list[int]:
++        ids = self.tokenizer.encode(wrap_with_system_tags(role_prompt))
++        # SentencePiece unk id (0) == EPAD: a non-ASCII char would silently become EPAD.
++        if 0 in ids:
++            raise ValueError(f"role prompt has {ids.count(0)} unknown tokens (id 0 == EPAD): {role_prompt!r}")
++        return ids
++
++    def __call__(self, role_prompt: str, voice: str) -> torch.Tensor:
++        key = (role_prompt, voice)
++        if key not in self._cache:
++            ids = self.prompt_ids(role_prompt)
++            vc = self.voice_codes[voice]
++            nv, ns, nt = vc.shape[-1], self.silence_frames, len(ids)
++            P = nv + ns + nt + ns
++            text = torch.full((1, P), self.text_padding, dtype=torch.long)
++            text[0, nv + ns: nv + ns + nt] = torch.tensor(ids, dtype=torch.long)
++            agent = torch.cat([vc, self.silence.expand(8, ns + nt + ns)], dim=1)
++            user = self.sine.expand(8, P)
++            self._cache[key] = torch.cat([text, agent, user], dim=0)[None]  # [1, 17, P]
++        return self._cache[key]
++
++
+ class InterleavedTokenizer:
+-    def __init__(self, mimi, interleaver, duration_sec: float):
++    def __init__(self, mimi, interleaver, duration_sec: float, prefixer: PersonaPlexPrefix | None = None):
+         self.mimi = mimi
+         self.interleaver = interleaver
+         self.duration_sec = duration_sec
+         self.num_audio_frames = math.ceil(duration_sec * mimi.frame_rate)
++        self.prefixer = prefixer
+ 
+     def __call__(self, wav: np.ndarray, start_sec: float, path: str) -> Sample:
+         with torch.no_grad():
+@@ -286,4 +362,10 @@ class InterleavedTokenizer:
+             )
+ 
+             codes = torch.cat([text_tokens, audio_tokens], dim=1)
+-            return Sample(codes, data.get("text_conditions", None))
++            assert "text_conditions" not in data, "PersonaPlex has no condition provider"
++            if self.prefixer is None:
++                return Sample(codes, None)
++            # Every chunk (also the mid-call chunk of a call longer than duration_sec) gets the
++            # prompt prefix: at inference the model always sees it before any conversation frame.
++            prefix = self.prefixer(data["role_prompt"], self.prefixer.voice_of(data)).to(codes.device)
++            return Sample(torch.cat([prefix, codes], dim=-1), None, prefix.shape[-1])
+diff --git a/finetune/eval.py b/finetune/eval.py
+index cb0daba..ddd4c90 100644
+--- a/finetune/eval.py
++++ b/finetune/eval.py
+@@ -1,88 +1,155 @@
++"""In-loop held-out evaluation for the PersonaPlex patch.
++
++The loss is EXACTLY the training loss (pp_lora.forward_train_agent + pp_lora.masked_losses: prompt
++prefix masked, text row + agent rows 1..dep_train_steps, text PAD/EPAD weight, cb1 multiplier,
++per-term weight-sum normalisation), computed under torch.no_grad with the model in eval mode
++(PersonaPlex has no dropout / self.training branches), then the model is put back in train mode.
++
++Windows are deterministic and cover the whole eval manifest: the training data path
++(sphn dataset_jsonl, duration_sec windows at 0, duration_sec, ... s, pad_last_segment) in its finite,
++unshuffled mode, encoded once with Mimi and cached on CPU. One window per forward (B=1), so each
++window's loss is independent of batching and padding.
++
++Aggregation (same definitions as /workspace/hinglish/trainer/eval_heldout.py):
++  window-mean: mean over windows of each window's masked_losses (total = text + audio, cb1, cb2-8 mean)
++  pooled:      each term's weighted numerator and weight-sum summed over windows (= one giant batch)
++
++Upstream's evaluate() (un-patched forward, all 16 audio rows, no prefix mask, capped at 40 batches and
++built on build_data_loader(is_eval=True), which drops the last partial batch) is replaced.
++
++Several named eval sets (parse_eval_sets): data.eval_data="val=/a.jsonl,control=/b.jsonl". Each set is cached
++and evaluated separately with evaluate() at every eval step; eval_metrics.csv gets one row per set with
++split=<name>. A plain path is one set named "eval" (backwards compatible). pick_best.py selects on split
++"val" (else "eval"); other splits (e.g. control = forgetting probe) are observation only.
++"""
++import json
+ import logging
+-from typing import Iterator
++import re
++import time
++from pathlib import Path
+ 
+ import torch
+-import torch.cuda
+-import torch.distributed as dist
+-from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
+-
+-from finetune.args import TrainArgs
+ 
+-from .data.data_loader import Batch
+-from .distributed import get_rank, get_world_size
+-from .loss import compute_loss_with_mask
+-from .utils import TrainState
++from . import pp_lora
++from .data.dataset import DataFile, get_dataset_iterator
++from .data.interleaver import Batch, Sample
++from .distributed import get_rank
+ 
+ logger = logging.getLogger("eval")
+ 
++EVAL_FIELDS = ["step", "split", "total", "text", "cb1", "cb2_8_mean", "n_windows",
++               "total_pooled", "text_pooled", "cb1_pooled", "cb2_8_pooled", "eval_s"]
++
++
++def parse_eval_sets(spec: str) -> list[tuple[str, str]]:
++    """data.eval_data -> [(split name, manifest path), ...] in the given order.
++      "/path/a.jsonl"                          -> [("eval", "/path/a.jsonl")]   (single manifest, as before)
++      "val=/path/a.jsonl,control=/path/b.jsonl" -> [("val", ...), ("control", ...)]
++    Names: [a-z0-9_]+, unique. Every set is evaluated at every eval step with the same evaluate()."""
++    spec = (spec or "").strip()
++    assert spec, "empty eval_data"
++    if "=" not in spec:
++        return [("eval", spec)]
++    sets: list[tuple[str, str]] = []
++    for item in spec.split(","):
++        item = item.strip()
++        assert "=" in item, f"eval_data item {item!r}: expected name=path (all items named when one is)"
++        name, path = (x.strip() for x in item.split("=", 1))
++        assert re.fullmatch(r"[a-z0-9_]+", name), f"eval set name {name!r} must match [a-z0-9_]+"
++        assert path, f"eval set {name!r}: empty path"
++        assert name not in {n for n, _ in sets}, f"duplicate eval set name {name!r}"
++        sets.append((name, path))
++    return sets
++
+ 
+ def main_logger_info(message: str) -> None:
+     if get_rank() == 0:
+         logger.info(message)
+ 
+ 
+-def evaluate(
+-    model: FullyShardedDataParallel,
+-    eval_data_loader: Iterator[Batch],
+-    state: TrainState,
+-    args: TrainArgs,
+-):
+-    num_samples = torch.tensor([0], device="cuda", dtype=torch.long)
++def expected_windows(manifest: str | Path, duration: float) -> int:
++    """Window count of the data path: starts at 0, d, 2d, ... while start < duration."""
++    n = 0
++    for line in Path(manifest).read_text().splitlines():
++        if not line.strip():
++            continue
++        dur, s = json.loads(line)["duration"], 0.0
++        while s < dur:
++            n += 1
++            s += duration
++    return n
++
++
++def build_eval_windows(manifest: str, tokenizer) -> list[tuple[torch.Tensor, int]]:
++    """Encode every window of `manifest` once (finite, unshuffled, no RNG). CPU cache of
++    (codes [1, K, T] long, prefix_len)."""
++    windows = []
++    it = get_dataset_iterator(DataFile(Path(manifest)), instruct_tokenizer=tokenizer, rank=0,
++                              world_size=1, is_finite=True, seed=None, shuffle_at_epoch=False)
++    for s in it:
++        windows.append((s.codes.cpu(), int(s.prefix_len)))
++    exp = expected_windows(manifest, tokenizer.duration_sec)
++    assert len(windows) == exp, f"eval windows {len(windows)} != expected {exp} for {manifest}"
++    return windows
++
+ 
+-    text_loss = torch.tensor(0.0).cuda()
+-    audio_loss = torch.tensor(0.0).cuda()
++@torch.no_grad()
++def window_losses(model, codes: torch.Tensor, prefix_len: int, args, text_pad_ids) -> dict:
++    """masked_losses on one window, plus the weight sums needed to pool across windows."""
++    b = Batch.collate([Sample(codes.cuda(non_blocking=True), None, prefix_len)])
++    out = pp_lora.forward_train_agent(model, b.codes, args.dep_train_steps)
++    loss, text_loss, audio_loss, st = pp_lora.masked_losses(
++        out, b.codes, b.prefix_len,
++        first_cb_mult=args.first_codebook_weight_multiplier,
++        text_padding_weight=args.text_padding_weight,
++        text_pad_ids=text_pad_ids,
++        dep_steps=args.dep_train_steps,
++    )
++    # Same masks / weights masked_losses builds, summed (for pooling only).
++    keep = pp_lora.prefix_keep_mask(b.prefix_len, b.codes.shape[-1])
++    tmask, amask = out.text_mask & keep, out.mask & keep
++    tgt = torch.where(tmask, b.codes[:, :1], torch.zeros_like(b.codes[:, :1]))
++    tw = tmask.float()
++    for i in text_pad_ids:
++        tw[tgt == i] *= args.text_padding_weight
++    aw = amask.float()
++    aw[:, 0] *= args.first_codebook_weight_multiplier
++    n_cb = amask.float().sum(dim=(0, 2))
++    r = {"total": loss.item(), "text": text_loss.item(), "audio": audio_loss.item(),
++         "cb1": st["cb1"].item(), "cb2_8": st["cb2_8"].item(),
++         "t_w": tw.sum().item(), "a_w": aw.sum().item(),
++         "n_cb1": n_cb[0].item(), "n_cb2_8": n_cb[1:].sum().item()}
++    del out
++    return r
++
++
++def evaluate(model, windows, args, text_pad_ids) -> dict:
++    """Held-out loss over all cached windows. Model in eval mode for the pass, back to train after."""
++    was_training = model.training
+     model.eval()
+-    for batch in eval_data_loader:
+-        num_samples += 1
+-        if num_samples > 40 // get_world_size():
+-            break
+-        with torch.no_grad():
+-            codes = batch.codes
+-            condition_tensors = None
+-            if batch.condition_attributes is not None:
+-                condition_tensors = model.condition_provider.prepare(
+-                    batch.condition_attributes
+-                )
+-
+-            output = model(codes=codes, condition_tensors=condition_tensors)
+-            text_loss += compute_loss_with_mask(
+-                output.text_logits,
+-                codes[:, : model.audio_offset],
+-                output.text_mask,
+-                mode="text",
+-                text_padding_weight=args.text_padding_weight,
+-                text_padding_ids={
+-                    model.text_padding_token_id,
+-                    model.end_of_text_padding_id,
+-                },
+-            )
+-            audio_loss += compute_loss_with_mask(
+-                output.logits,
+-                codes[:, model.audio_offset : model.audio_offset + model.dep_q],
+-                output.mask,
+-                mode="audio",
+-                first_codebook_weight_multiplier=args.first_codebook_weight_multiplier,
+-            )
+-    eval_loss = text_loss + audio_loss
+-    all_num_samples = [torch.zeros_like(num_samples) for _ in range(get_world_size())]
+-
+-    torch.distributed.all_gather(all_num_samples, num_samples)
+-
+-    total_num_samples = int(torch.tensor(all_num_samples).sum().item())
+-    # sum loss
+-    main_logger_info("Eval finished!")
+-
+-    dist.all_reduce(eval_loss, op=dist.ReduceOp.SUM)
+-    dist.all_reduce(text_loss, op=dist.ReduceOp.SUM)
+-    dist.all_reduce(audio_loss, op=dist.ReduceOp.SUM)
+-    text_loss /= total_num_samples
+-    audio_loss /= total_num_samples
+-    eval_loss /= total_num_samples
+-
+-    state.this_eval_loss = eval_loss.item()
+-    state.this_eval_perplexity = (2**eval_loss).item()
+-    state.this_audio_loss = audio_loss.item()
+-    state.this_text_loss = text_loss.item()
+-
+-    # train mode!
+-    model.train()
++    torch.cuda.synchronize()
++    t0 = time.time()
++    try:
++        rows = [window_losses(model, c, p, args, text_pad_ids) for c, p in windows]
++    finally:
++        model.train(was_training)
++    torch.cuda.synchronize()
++    n = len(rows)
++    res = {k: sum(r[k] for r in rows) / n for k in ("total", "text", "cb1", "cb2_8")}
++    t_w, a_w = sum(r["t_w"] for r in rows), sum(r["a_w"] for r in rows)
++    tp = sum(r["text"] * r["t_w"] for r in rows) / t_w
++    ap = sum(r["audio"] * r["a_w"] for r in rows) / a_w
++    res.update({
++        "total_pooled": tp + ap, "text_pooled": tp, "audio_pooled": ap,
++        "cb1_pooled": sum(r["cb1"] * r["n_cb1"] for r in rows) / sum(r["n_cb1"] for r in rows),
++        "cb2_8_pooled": sum(r["cb2_8"] * r["n_cb2_8"] for r in rows) / sum(r["n_cb2_8"] for r in rows),
++        "n_windows": n, "eval_s": time.time() - t0,
++    })
++    return res
++
++
++def eval_row(step: int, split: str, r: dict) -> dict:
++    return {"step": step, "split": split, "total": r["total"], "text": r["text"], "cb1": r["cb1"],
++            "cb2_8_mean": r["cb2_8"], "n_windows": r["n_windows"], "total_pooled": r["total_pooled"],
++            "text_pooled": r["text_pooled"], "cb1_pooled": r["cb1_pooled"],
++            "cb2_8_pooled": r["cb2_8_pooled"], "eval_s": r["eval_s"]}
+diff --git a/finetune/wrapped_model.py b/finetune/wrapped_model.py
+index 8a7ec08..289e194 100644
+--- a/finetune/wrapped_model.py
++++ b/finetune/wrapped_model.py
+@@ -6,13 +6,14 @@ from typing import Callable, Union
+ import safetensors
+ import torch
+ import torch.distributed.fsdp.wrap as torch_wrap
++from moshi.models import loaders
+ from moshi.models.lm import LMModel
+-from moshi.models.loaders import CheckpointInfo, _is_safetensors
+ from moshi.modules.transformer import StreamingTransformerLayer
+ from torch.distributed.fsdp import BackwardPrefetch
+ from torch.distributed.fsdp.api import ShardingStrategy
+ from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
+ 
++from . import pp_lora
+ from .args import TrainArgs
+ from .distributed import get_rank, get_world_size
+ 
+@@ -95,115 +96,24 @@ def initialize_lora_parameters(model: torch.nn.Module, param_dtype: torch.dtype)
+                     raise ValueError("Only Lora layers should be randomly initialized.")
+ 
+ 
+-def get_fsdp_model(
+-    args: TrainArgs, checkpointer_info: CheckpointInfo
+-) -> FullyShardedDataParallel | LMModel:
+-    """
+-    Initializes and returns a FullyShardedDataParallel (FSDP) LMModel or a non sharded LMModel if one GPU available.
+-    Args:
+-        args (TrainArgs): A configuration object containing training arguments
+-            and settings. Key attributes include:
+-            - param_dtype: The data type for model parameters (e.g., "bfloat16", "float32").
+-            - gradient_checkpointing: Whether to enable gradient checkpointing.
+-            - lora: Configuration for LoRA fine-tuning, including enabling, rank, and scaling.
+-            - full_finetuning: Whether to enable full model fine-tuning or only LoRA fine-tuning.
+-        checkpointer_info: provide the initial checkpoint to train from.
+-    Notes:
+-        - The function uses meta-device initialization for memory efficiency.
+-        - Then parameters are initialized on the first GPU (rank=0) only.
+-    """
+-
+-    if args.param_dtype == "bfloat16":
+-        param_dtype = torch.bfloat16
+-    elif args.param_dtype == "float32":
+-        param_dtype = torch.float32
+-
+-    with torch.device("meta"):
+-        model = checkpointer_info.get_moshi(
+-            device="meta",
+-            dtype=param_dtype,
+-            lm_kwargs_overrides={
+-                "gradient_checkpointing": args.gradient_checkpointing,
+-                "lora": args.lora.enable,
+-                "lora_rank": args.lora.rank,
+-                "lora_scaling": args.lora.scaling,
+-            },
+-            load_weight=False,
+-        )
+-
+-    if get_rank() == 0:
+-        moshi_weight = checkpointer_info.moshi_weights
+-
+-        assert _is_safetensors(moshi_weight), "Model is not safetensors"
+-        model_state_dict = safetensors.torch.load_file(moshi_weight)
+-
+-        logger.info(f"Converting model to dtype {param_dtype} ...")
+-
+-        for k, v in model_state_dict.items():
+-            model_state_dict[k] = v.to(param_dtype)
+-
+-        model.load_state_dict(model_state_dict, strict=False, assign=True)
+-
+-        if args.lora.enable and not args.full_finetuning:
+-            logger.info("Initializing lora layers ...")
+-            # initialize LoRA layers
+-            initialize_lora_parameters(model, param_dtype)
+-
+-        assert not any(p.is_meta for p in model.parameters()), (
+-            "All parameters should be initialized by now"
+-        )
+-        assert all(p.dtype == param_dtype for p in model.parameters()), (
+-            f"All parameters should be on {param_dtype}"
+-        )
+-
+-        logger.info("Finished initialization!")
+-        param_init_fn = None
+-    else:
+-
+-        def param_init_fn(m):
+-            m.to_empty(device=torch.cuda.current_device(), recurse=False)
+-            m.to(param_dtype)
+-
+-        assert all(p.is_meta for p in model.parameters()), (
+-            "All parameters should be on meta"
+-        )
+-
+-    torch.distributed.barrier()
+-
+-    # only finetune LoRA parameters and freeze before wrapping
+-    if args.lora.enable and not args.full_finetuning:
+-        for name, param in model.named_parameters():
+-            if "lora" in name:
+-                param.requires_grad = True
+-            elif args.lora.ft_embed and "emb" in name:
+-                param.requires_grad = True
+-            else:
+-                param.requires_grad = False
+-    else:
+-        for param in model.parameters():
+-            param.requires_grad = True
+-
+-    if get_world_size() == 1:
+-        return model.cuda()
+-
+-    auto_wrap_policy = get_fsdp_policy(args.lora.enable)
+-
+-    main_logger_info(f"Sharding model over {get_world_size()} GPUs ...")
+-
+-    wrapped_model = FullyShardedDataParallel(
+-        model,
+-        sharding_strategy=ShardingStrategy.FULL_SHARD,
+-        auto_wrap_policy=auto_wrap_policy,
+-        backward_prefetch=BackwardPrefetch.BACKWARD_PRE,
+-        limit_all_gathers=True,
+-        device_id=torch.cuda.current_device(),
+-        sync_module_states=True,
+-        param_init_fn=param_init_fn,
+-        use_orig_params=True,
+-    )
+-
+-    main_logger_info("Model sharded!")
+-
+-    log_train_params(wrapped_model)
+-
+-    return wrapped_model
++def get_fsdp_model(args: TrainArgs, moshi_weight: str) -> LMModel:
++    """PersonaPlex version: loads nvidia/personaplex-7b-v1 with the PersonaPlex moshi loaders
++    (moshi.models.loaders.get_moshi_lm, dep_q=16), then adds weight-level LoRA (finetune/pp_lora.py),
++    freezes per moshi-finetune's rules and wraps every layer in activation checkpointing.
++    Single GPU only (PersonaPlex has no FSDP-ready meta init path here)."""
++    assert get_world_size() == 1, "PersonaPlex patch supports a single GPU only"
++    assert args.lora.enable and not args.full_finetuning, "PersonaPlex patch supports LoRA only"
++    param_dtype = getattr(torch, args.param_dtype)
++
++    model = loaders.get_moshi_lm(moshi_weight, device="cuda", dtype=param_dtype)
++    assert model.dep_q == 16 and model.n_q == 16, (model.dep_q, model.n_q)
++
++    logger.info("Adding weight-level LoRA ...")
++    names = pp_lora.apply_lora(model, args.lora.rank, args.lora.scaling, dep_steps=args.dep_train_steps)
++    logger.info(f"LoRA on {len(names)} weights (rank {args.lora.rank}, scaling {args.lora.scaling})")
++    pp_lora.set_trainable(model, args.lora.ft_embed, args.dep_train_steps)
++    if args.gradient_checkpointing:
++        pp_lora.enable_activation_checkpointing(model)
++    assert all(p.dtype == param_dtype for p in model.parameters())
++    log_train_params(model)
++    return model
+diff --git a/train.py b/train.py
+index fd3cc6d..3afd042 100644
+--- a/train.py
++++ b/train.py
+@@ -6,8 +6,14 @@ import shutil
+ from contextlib import ExitStack
+ from pathlib import Path
+ 
++import csv
++import time
++
+ import fire
++import sentencepiece
+ import torch.cuda
++from huggingface_hub import hf_hub_download
++from tqdm import tqdm
+ import torch.distributed as dist
+ from torch.optim import AdamW, lr_scheduler
+ 
+@@ -16,7 +22,8 @@ from torch.optim import AdamW, lr_scheduler
+ from finetune.args import TrainArgs
+ from finetune.checkpointing import Checkpointer
+ from finetune.data.data_loader import build_data_loader
+-from finetune.data.interleaver import InterleavedTokenizer, Interleaver
++from finetune import pp_lora
++from finetune.data.interleaver import InterleavedTokenizer, Interleaver, PersonaPlexPrefix
+ from finetune.distributed import (
+     BACKEND,
+     avg_aggregate,
+@@ -25,7 +32,7 @@ from finetune.distributed import (
+     is_torchrun,
+     set_device,
+ )
+-from finetune.eval import evaluate
++from finetune.eval import EVAL_FIELDS, build_eval_windows, eval_row, evaluate, parse_eval_sets
+ from finetune.loss import compute_loss_with_mask
+ from finetune.mixed_precision import (
+     downcast_mixed_precision,
+@@ -81,14 +88,22 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
+     main_logger_info(f"Run dir: {args.run_dir}")
+     run_dir = Path(args.run_dir)
+ 
++    # PersonaPlex patch: the wrapper script tees run.log into run_dir before training starts, so an
++    # existing run_dir is only refused when it already holds training outputs.
+     if is_torchrun():
+-        if run_dir.exists() and not args.overwrite_run_dir:
++        done = [run_dir / n for n in ("checkpoints", "metrics.csv", "args.yaml")]
++        if any(d.exists() for d in done) and not args.overwrite_run_dir:
+             raise RuntimeError(
+-                f"Run dir {run_dir} already exists. Make sure to either rename `run_dir` or remove {run_dir}."
++                f"Run dir {run_dir} already has training outputs. Rename `run_dir` or remove {run_dir}."
+             )
+-        elif run_dir.exists():
+-            main_logger_info(f"Removing run dir {run_dir}...")
+-            shutil.rmtree(run_dir)
++        elif any(d.exists() for d in done):
++            main_logger_info(f"Removing previous outputs in {run_dir}...")
++            for d in done + [run_dir / "loss.png", run_dir / "lora.safetensors", run_dir / "config.json",
++                             run_dir / "eval_metrics.csv"]:
++                if d.is_dir():
++                    shutil.rmtree(d)
++                elif d.exists():
++                    d.unlink()
+ 
+     if args.full_finetuning:
+         assert not args.lora.enable, "LoRA should not be enabled for full finetuning."
+@@ -123,34 +138,44 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
+     )
+     exit_stack.enter_context(logged_closing(eval_logger, "eval_logger"))
+ 
+-    # 4.1 Load function calling audio encoder and tokenizer
+-    main_logger_info("Loading Mimi and Moshi...")
+-    checkpoint_info = loaders.CheckpointInfo.from_hf_repo(
+-        hf_repo=args.moshi_paths.hf_repo_id,
+-        moshi_weights=args.moshi_paths.moshi_path,
+-        mimi_weights=args.moshi_paths.mimi_path,
+-        tokenizer=args.moshi_paths.tokenizer_path,
+-        config_path=args.moshi_paths.config_path,
+-    )
+-
+-    lm_config = (
+-        loaders._lm_kwargs
+-        if checkpoint_info.raw_config is None
+-        else checkpoint_info.raw_config
+-    )
+-    lm_config["lora"] = args.lora.enable
+-    lm_config["lora_rank"] = args.lora.rank
+-    lm_config["lora_scaling"] = args.lora.scaling
+-
+-    mimi = checkpoint_info.get_mimi(device="cuda")
++    # 4.1 PersonaPlex: Mimi, tokenizer and LM through the PersonaPlex moshi loaders
++    main_logger_info("Loading Mimi and PersonaPlex ...")
++    if args.do_eval:
++        assert args.eval_freq > 0 and args.data.eval_data, "do_eval needs eval_freq > 0 and data.eval_data"
++        eval_sets = parse_eval_sets(args.data.eval_data)
++        for _name, _path in eval_sets:
++            assert Path(_path).is_file(), f"eval set {_name}: no manifest {_path}"
++    repo = args.moshi_paths.hf_repo_id
++    moshi_weight = args.moshi_paths.moshi_path or hf_hub_download(repo, loaders.MOSHI_NAME)
++    mimi_weight = args.moshi_paths.mimi_path or hf_hub_download(repo, loaders.MIMI_NAME)
++    tok_path = args.moshi_paths.tokenizer_path or hf_hub_download(repo, loaders.TEXT_TOKENIZER_NAME)
++
++    lm_config = {
++        "format": pp_lora.ADAPTER_FORMAT,
++        "base_repo": repo,
++        "moshi_weight": str(moshi_weight),
++        "lora": args.lora.enable,
++        "lora_rank": args.lora.rank,
++        "lora_scaling": args.lora.scaling,
++        "ft_embed": args.lora.ft_embed,
++        "dep_train_steps": args.dep_train_steps,
++        "lm_kwargs": {k: v for k, v in loaders._lm_kwargs.items()} | {"dep_q": 16},
++    }
++
++    mimi = loaders.get_mimi(mimi_weight, device="cuda")
+     mimi.eval()
+     for p in mimi.parameters():
+         p.requires_grad = False
+ 
+-    # 4.2 Load and shard model, prepare interleaver for audio/text tokens.
+-    model = get_fsdp_model(args, checkpoint_info)
++    # 4.2 Load model, prepare interleaver for audio/text tokens.
++    t_load = time.time()
++    model = get_fsdp_model(args, moshi_weight)
++    main_logger_info(f"Model ready in {time.time() - t_load:.1f} s")
++    lm_config["n_lora_weights"] = sum(
++        len(m.parametrizations) for m in model.modules() if hasattr(m, "parametrizations")
++    )
+ 
+-    spm = checkpoint_info.get_text_tokenizer()
++    spm = sentencepiece.SentencePieceProcessor(tok_path)
+ 
+     interleaver = Interleaver(
+         spm,
+@@ -159,9 +184,13 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
+         model.end_of_text_padding_id,
+         model.zero_token_id,
+         keep_main_only=True,
++        keep_and_shift=args.keep_and_shift,
+     )
++    main_logger_info(f"Interleaver keep_and_shift={args.keep_and_shift}")
++    prefixer = PersonaPlexPrefix(spm, args.voice_codes_dir, text_padding=model.text_padding_token_id,
++                                 silence_frames=int(0.5 * mimi.frame_rate))
+     interleaved_tokenizer = InterleavedTokenizer(
+-        mimi, interleaver, duration_sec=args.duration_sec
++        mimi, interleaver, duration_sec=args.duration_sec, prefixer=prefixer
+     )
+ 
+     # 5. Load data loaders
+@@ -176,15 +205,18 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
+     )
+ 
+     if args.do_eval:
+-        eval_data_loader = build_data_loader(
+-            instruct_tokenizer=interleaved_tokenizer,
+-            args=args.data,
+-            batch_size=args.batch_size,
+-            seed=None,
+-            rank=get_rank(),  # DDP rank
+-            world_size=get_world_size(),  # DDP world_size
+-            is_eval=True,
+-        )
++        # PersonaPlex: every window of the eval manifest, encoded once (finite, unshuffled), evaluated
++        # one window per forward with the training loss (finetune/eval.py). Single-process only.
++        assert get_world_size() == 1, "PersonaPlex in-loop eval is single-GPU"
++        # Several named sets (e.g. val + control): one window cache per set, same evaluate() for each.
++        eval_windows: dict[str, list] = {}
++        for name, path in eval_sets:
++            t_enc = time.time()
++            eval_windows[name] = build_eval_windows(path, interleaved_tokenizer)
++            main_logger_info(
++                f"Eval set '{name}' {path}: {len(eval_windows[name])} windows, every {args.eval_freq} steps "
++                f"(+ step 0); encoded in {time.time() - t_enc:.1f} s"
++            )
+ 
+     # 6. Load model
+     # Define mixed precision
+@@ -221,6 +253,8 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
+             optimizer=optimizer,
+             num_ckpt_keep=args.num_ckpt_keep,
+             full_finetuning=args.full_finetuning,
++            ft_embed=args.lora.ft_embed,
++            dep_steps=args.dep_train_steps,
+         )
+     # 9. Prepare mixed precision
+     prepare_mixed_precision(
+@@ -230,6 +264,52 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
+     # 11. train!
+     model.train()
+     torch.cuda.empty_cache()
++    text_pad_ids = {model.text_padding_token_id, model.end_of_text_padding_id}
++    metrics_path = run_dir / "metrics.csv"
++    fields = ["step", "total", "text", "cb1", "cb2_8_mean", "lr", "tokens_per_s", "frames_per_s",
++              "step_s", "data_s", "vram_gb", "vram_peak_gb"]
++    if get_rank() == 0 and not metrics_path.exists():
++        with open(metrics_path, "w", newline="") as f:
++            csv.writer(f).writerow(fields)
++    window: list[dict] = []
++    history: list[dict] = []
++    eval_history: list[dict] = []
++    eval_path = run_dir / "eval_metrics.csv"  # not val_metrics.csv: trainer/eval_heldout.py writes that name
++
++    def run_eval(step: int) -> None:
++        # Grads of the finished step are no longer needed; free them before the eval pass.
++        optimizer.zero_grad(set_to_none=True)
++        rows, log = [], {"step": step}
++        for name, windows in eval_windows.items():
++            r = evaluate(model, windows, args, text_pad_ids)
++            torch.cuda.empty_cache()
++            rows.append(eval_row(step, name, r))
++            main_logger_info(
++                f"[eval:{name}] step {step} total {r['total']:.5g} text {r['text']:.4g} cb1 {r['cb1']:.4g} "
++                f"cb2-8 {r['cb2_8']:.4g} | pooled total {r['total_pooled']:.5g} | {r['n_windows']} windows "
++                f"in {r['eval_s']:.1f} s | vram peak {torch.cuda.max_memory_allocated() / 1e9:.1f} GB"
++            )
++            # One eval_logger call per step; keys prefixed by split only when there are several sets.
++            pre = "" if len(eval_windows) == 1 else f"{name}_"
++            log.update({f"{pre}eval_loss": r["total"], f"{pre}text_eval_loss": r["text"],
++                        f"{pre}eval_cb1": r["cb1"], f"{pre}eval_cb2_8_mean": r["cb2_8"]})
++        eval_logger.log(log, step=step)
++        if get_rank() != 0:
++            return
++        new = not eval_path.exists()
++        with open(eval_path, "a", newline="") as f:
++            w = csv.writer(f)
++            if new:
++                w.writerow(EVAL_FIELDS)
++            for row in rows:
++                w.writerow([f"{row[k]:.6g}" if isinstance(row[k], float) else row[k] for k in EVAL_FIELDS])
++        eval_history.extend(rows)
++        if history:
++            plot_losses(history, run_dir / "loss.png", run_dir.name, eval_history)
++
++    if args.do_eval:
++        run_eval(0)  # base / init model, before any update
++    pbar = tqdm(total=args.max_steps, desc=run_dir.name, mininterval=10, disable=get_rank() != 0)
+ 
+     while state.step < args.max_steps:
+         state.start_step()
+@@ -240,46 +320,38 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
+         loss = torch.tensor([0.0], device="cuda")
+         n_batch_tokens: int = 0
+         n_real_tokens: int = 0
++        n_frames = 0
++        data_s = 0.0
++        acc = {"text": 0.0, "cb1": 0.0, "cb2_8": 0.0}
+ 
+         for i in range(args.num_microbatches):
++            t_data = time.time()
+             batch = next(data_loader)
++            data_s += time.time() - t_data
+             codes = batch.codes
+-
+-            condition_tensors = None
+-            if batch.condition_attributes is not None:
+-                condition_tensors = model.condition_provider.prepare(
+-                    batch.condition_attributes
+-                )
+-
+-            # forward / backward
+-            output = model(codes=codes, condition_tensors=condition_tensors)
+-            text_loss = compute_loss_with_mask(
+-                output.text_logits,
+-                codes[:, : model.audio_offset],
+-                output.text_mask,
+-                mode="text",
++            assert batch.condition_attributes is None
++
++            # forward / backward: PersonaPlex forward restricted to the 8 agent depformer steps,
++            # loss on text + agent rows 1-8 only, prompt prefix masked.
++            output = pp_lora.forward_train_agent(model, codes, args.dep_train_steps)
++            mb_loss, text_loss, audio_loss, st = pp_lora.masked_losses(
++                output,
++                codes,
++                batch.prefix_len,
++                first_cb_mult=args.first_codebook_weight_multiplier,
+                 text_padding_weight=args.text_padding_weight,
+-                text_padding_ids={
+-                    model.text_padding_token_id,
+-                    model.end_of_text_padding_id,
+-                },
++                text_pad_ids=text_pad_ids,
++                dep_steps=args.dep_train_steps,
+             )
+-            audio_loss = compute_loss_with_mask(
+-                output.logits,
+-                codes[:, model.audio_offset : model.audio_offset + model.dep_q],
+-                output.mask,
+-                mode="audio",
+-                first_codebook_weight_multiplier=args.first_codebook_weight_multiplier,
+-            )
+-
+-            mb_loss = text_loss + audio_loss
+             mb_loss.backward()
+ 
+             loss += mb_loss.detach()
++            for k in acc:
++                acc[k] += st[k].item() / args.num_microbatches
+             n_batch_tokens += output.text_mask.numel() + output.mask.numel()
+-            n_real_tokens += (
+-                torch.sum(output.text_mask).item() + torch.sum(output.mask).item()
+-            )
++            n_real_tokens += int(st["n_real_tokens"].item())
++            n_frames += codes.shape[0] * codes.shape[-1]
++            del output
+ 
+             if i < args.num_microbatches - 1:
+                 # synchronize CUDA to re-run backward
+@@ -312,24 +384,15 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
+         loss_item = loss.item()
+         avg_loss = avg_aggregate(loss_item)
+ 
+-        if args.do_eval and (
+-            (args.eval_freq > 0 and state.step % args.eval_freq == 0) or is_last_step
+-        ):
+-            # write perplexity to state
+-            evaluate(model, eval_data_loader, state, args)
+-
+-            eval_logs = get_eval_logs(
+-                state.step,
+-                avg_loss,
+-                state.this_eval_perplexity,
+-                state.this_eval_loss,
+-            )
+-
+-            main_logger_info(eval_log_msg(eval_logs))
+-            eval_logger.log(eval_logs, step=state.step)
+-
+         # Timing
+         state.end_step(n_batch_tokens)
++        pbar.update(1)
++        pbar.set_postfix(loss=f"{avg_loss:.3f}", text=f"{acc['text']:.3f}", cb1=f"{acc['cb1']:.3f}")
++
++        window.append({
++            "total": avg_loss, "text": acc["text"], "cb1": acc["cb1"], "cb2_8_mean": acc["cb2_8"],
++            "real_tokens": n_real_tokens, "frames": n_frames, "step_s": state.this_step_time, "data_s": data_s,
++        })
+ 
+         if state.step % args.log_freq == 0:
+             train_logs = get_train_logs(
+@@ -344,6 +407,30 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
+             main_logger_info(train_log_msg(state, logs=train_logs, loss=avg_loss))
+             metrics_logger.log(train_logs, step=state.step)
+ 
++        if get_rank() == 0 and (state.step % args.metrics_freq == 0 or is_last_step):
++            n = len(window)
++            tsum = sum(w["step_s"] for w in window)
++            row = {
++                "step": state.step,
++                "total": sum(w["total"] for w in window) / n,
++                "text": sum(w["text"] for w in window) / n,
++                "cb1": sum(w["cb1"] for w in window) / n,
++                "cb2_8_mean": sum(w["cb2_8_mean"] for w in window) / n,
++                "lr": last_lr,
++                "tokens_per_s": sum(w["real_tokens"] for w in window) / tsum,
++                "frames_per_s": sum(w["frames"] for w in window) / tsum,
++                "step_s": tsum / n,
++                "data_s": sum(w["data_s"] for w in window) / n,
++                "vram_gb": torch.cuda.memory_allocated() / 1e9,
++                "vram_peak_gb": torch.cuda.max_memory_allocated() / 1e9,
++            }
++            with open(metrics_path, "a", newline="") as f:
++                csv.writer(f).writerow([f"{row[k]:.6g}" if isinstance(row[k], float) else row[k] for k in fields])
++            history.append(row)
++            window = []
++            if state.step % args.plot_freq == 0 or is_last_step:
++                plot_losses(history, run_dir / "loss.png", run_dir.name, eval_history)
++
+         if args.do_ckpt and (
+             (args.ckpt_freq > 0 and state.step % args.ckpt_freq == 0) or is_last_step
+         ):
+@@ -352,9 +439,51 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
+                 dtype=param_dtype,
+             )
+ 
++        # Held-out eval after the optimizer step (= the weights a checkpoint at this step holds).
++        # Outside state.start_step/end_step, so step_s in metrics.csv excludes it.
++        if args.do_eval and (state.step % args.eval_freq == 0 or is_last_step):
++            run_eval(state.step)
++
++    pbar.close()
++    if args.do_ckpt and get_rank() == 0:
++        # Final consolidated adapter + config at the top of the run dir.
++        final = checkpointer.ckpt_dir / f"checkpoint_{state.step:06d}" / "consolidated"
++        shutil.copy(final / "lora.safetensors", run_dir / "lora.safetensors")
++        shutil.copy(final / "config.json", run_dir / "config.json")
++        main_logger_info(f"Final adapter: {run_dir / 'lora.safetensors'}")
+     main_logger_info("done!")
+ 
+ 
++def plot_losses(history: list[dict], path: Path, title: str, eval_history: list[dict] | None = None) -> None:
++    """Train curves solid; eval sets (window-mean, eval_metrics.csv) in the same colour per term:
++    val / eval (single set) dashed, control dotted, any other split dash-dot."""
++    import matplotlib
++
++    matplotlib.use("Agg")
++    import matplotlib.pyplot as plt
++
++    steps = [h["step"] for h in history]
++    fig, ax = plt.subplots(figsize=(8, 5))
++    for key, label in [("total", "total"), ("text", "text"), ("cb1", "codebook 1"),
++                       ("cb2_8_mean", "codebooks 2-8 (mean)")]:
++        (line,) = ax.plot(steps, [max(h[key], 1e-6) for h in history], label=label)
++        for split in dict.fromkeys(e["split"] for e in eval_history or []):
++            eh = [e for e in eval_history if e["split"] == split]
++            ls = {"val": "--", "eval": "--", "control": ":"}.get(split, "-.")
++            ax.plot([e["step"] for e in eh], [max(e[key], 1e-6) for e in eh],
++                    linestyle=ls, marker=".", color=line.get_color(), label=f"{split} {label}")
++    ax.set_yscale("log")
++    ax.set_xlabel("step")
++    ax.set_ylabel("loss (log)")
++    ax.set_title(title)
++    ax.grid(True, which="both", alpha=0.3)
++    multi = len({e["split"] for e in eval_history or []}) > 1
++    ax.legend(fontsize="small" if multi else None, ncol=2 if multi else 1)
++    fig.tight_layout()
++    fig.savefig(path, dpi=110)
++    plt.close(fig)
++
++
+ if __name__ == "__main__":
+     """See README.md for usage."""
+     fire.Fire(train)
+diff --git a/finetune/pp_lora.py b/finetune/pp_lora.py
+new file mode 100644
+index 0000000..05b3783
+--- /dev/null
++++ b/finetune/pp_lora.py
+@@ -0,0 +1,217 @@
++"""PersonaPlex support for moshi-finetune: weight-level LoRA, activation checkpointing,
++an agent-only forward pass, the masked loss, and adapter save.
++
++PersonaPlex (moshi fork at /workspace/personaplex/moshi) reads several weights functionally
++(self_attn.in_proj_weight via F.linear / multi_linear, depformer out_proj.weight via multi_linear,
++gating linear_in/linear_out .weight via gating_forward_kernel), so moshi's module-swap LoRALinear
++cannot be used. Instead every target weight W gets a torch parametrization W_eff = W + s * B @ A.
++Parameter names stay PersonaPlex's own, which is what the adapter file is keyed by.
++
++Stacked per-step depformer weights ([n_steps*out, in]) get one LoRA pair per step (A:[n,r,in],
++B:[n,out,r]), the same semantics as upstream moshi's per-step in_projs/out_projs.
++
++Only the first `dep_steps` (=8) depformer steps are run in training: those produce the 8 agent
++codebooks (rows 1-8). The depformer is causal over steps, so their logits are identical to the
++full 16-step pass; steps 8-15 (user codebooks) never enter the loss, so they get no LoRA.
++"""
++import math
++
++import torch
++from torch import nn
++from torch.nn.utils import parametrize
++from torch.utils.checkpoint import checkpoint
++
++from moshi.models.lm import LMOutput, _delay_sequence, _undelay_sequence
++
++ADAPTER_FORMAT = "personaplex_weight_lora_v1"
++
++
++class LoRAWeight(nn.Module):
++    """Parametrization W -> W + scaling * B @ A, per block for stacked per-step weights.
++
++    W has shape [n_blocks * out_f, in_f]; only the first n_active blocks are adapted.
++    A: [n_active, rank, in_f] (kaiming-uniform, as moshi-finetune), B: [n_active, out_f, rank] (zeros).
++    """
++
++    def __init__(self, out_f, in_f, rank, scaling, n_blocks=1, n_active=1, device=None, dtype=None):
++        super().__init__()
++        self.out_f, self.in_f = out_f, in_f
++        self.n_blocks, self.n_active = n_blocks, n_active
++        self.scaling = scaling
++        self.lora_A = nn.Parameter(torch.empty(n_active, rank, in_f, device=device, dtype=dtype))
++        self.lora_B = nn.Parameter(torch.zeros(n_active, out_f, rank, device=device, dtype=dtype))
++        with torch.no_grad():
++            for i in range(n_active):
++                nn.init.kaiming_uniform_(self.lora_A[i], a=math.sqrt(5))
++
++    def delta(self):
++        return torch.bmm(self.lora_B, self.lora_A) * self.scaling  # [n_active, out_f, in_f]
++
++    def forward(self, W):
++        d = self.delta().to(W.dtype)
++        if self.n_active == self.n_blocks:
++            return W + d.reshape(W.shape)
++        Wv = W.view(self.n_blocks, self.out_f, self.in_f)
++        return torch.cat([Wv[: self.n_active] + d, Wv[self.n_active:]], 0).reshape(W.shape)
++
++
++def lora_targets(lm, dep_steps: int = 8):
++    """All linear weights of the temporal transformer and the depformer (first dep_steps steps),
++    plus depformer_in / linears (first dep_steps) and text_linear.
++    Returns [(pp_param_name, module, attr, n_blocks, n_active)]."""
++    out = []
++    for i, layer in enumerate(lm.transformer.layers):
++        p = f"transformer.layers.{i}"
++        out += [(f"{p}.self_attn.in_proj_weight", layer.self_attn, "in_proj_weight", 1, 1),
++                (f"{p}.self_attn.out_proj.weight", layer.self_attn.out_proj, "weight", 1, 1),
++                (f"{p}.gating.linear_in.weight", layer.gating.linear_in, "weight", 1, 1),
++                (f"{p}.gating.linear_out.weight", layer.gating.linear_out, "weight", 1, 1)]
++    n_dep = lm.dep_q
++    for i, layer in enumerate(lm.depformer.layers):
++        p = f"depformer.layers.{i}"
++        assert layer.self_attn.weights_per_step == n_dep, "expected per-step depformer weights"
++        out += [(f"{p}.self_attn.in_proj_weight", layer.self_attn, "in_proj_weight", n_dep, dep_steps),
++                (f"{p}.self_attn.out_proj.weight", layer.self_attn.out_proj, "weight", n_dep, dep_steps)]
++        for s in range(dep_steps):
++            g = layer.gating[s]
++            out += [(f"{p}.gating.{s}.linear_in.weight", g.linear_in, "weight", 1, 1),
++                    (f"{p}.gating.{s}.linear_out.weight", g.linear_out, "weight", 1, 1)]
++    assert lm.depformer_multi_linear and lm.depformer_weights_per_step_schedule is None
++    for s in range(dep_steps):
++        out.append((f"depformer_in.{s}.weight", lm.depformer_in[s], "weight", 1, 1))
++        out.append((f"linears.{s}.weight", lm.linears[s], "weight", 1, 1))
++    out.append(("text_linear.weight", lm.text_linear, "weight", 1, 1))
++    return out
++
++
++def apply_lora(lm, rank: int, scaling: float, dep_steps: int = 8) -> list[str]:
++    names = []
++    for name, mod, attr, nb, na in lora_targets(lm, dep_steps):
++        W = getattr(mod, attr)
++        assert W.shape[0] % nb == 0, name
++        par = LoRAWeight(W.shape[0] // nb, W.shape[1], rank, scaling, nb, na, device=W.device, dtype=W.dtype)
++        parametrize.register_parametrization(mod, attr, par)
++        names.append(name)
++    return names
++
++
++def is_trainable_emb(name: str, dep_steps: int) -> bool:
++    """Embedding tables trained when lora.ft_embed (moshi-finetune rule: 'emb' in name), restricted to
++    the depformer embeddings the dep_steps forward actually uses."""
++    if name.startswith("emb.") or name.startswith("text_emb.") or name.startswith("depformer_text_emb."):
++        return True
++    if name.startswith("depformer_emb."):
++        return int(name.split(".")[1]) < dep_steps - 1
++    return False
++
++
++def set_trainable(lm, ft_embed: bool, dep_steps: int):
++    for n, p in lm.named_parameters():
++        p.requires_grad = ("lora_A" in n or "lora_B" in n) or (ft_embed and is_trainable_emb(n, dep_steps))
++
++
++def enable_activation_checkpointing(lm):
++    """PersonaPlex has no gradient-checkpointing flag: wrap each layer's forward (instance attribute,
++    so parameter names are unchanged). Non-reentrant, so LoRA params get grads even when the layer
++    input does not require grad (frozen embeddings)."""
++    for layers in (lm.transformer.layers, lm.depformer.layers):
++        for layer in layers:
++            f = layer.forward
++
++            def fwd(x, *a, _f=f, **k):
++                if torch.is_grad_enabled():
++                    return checkpoint(_f, x, *a, use_reentrant=False, **k)
++                return _f(x, *a, **k)
++
++            layer.forward = fwd
++
++
++def forward_train_agent(lm, codes: torch.Tensor, dep_steps: int = 8) -> LMOutput:
++    """PersonaPlex LMModel.forward_train restricted to the first `dep_steps` depformer steps
++    (same code path otherwise; see moshi/models/lm.py forward_train / forward_depformer_training)."""
++    B, K, T = codes.shape
++    initial = lm._get_initial_token().expand(B, -1, -1)
++    delayed = _delay_sequence(lm.delays, codes, initial)
++    delayed = torch.cat([initial, delayed], dim=2)
++    transformer_out, text_logits = lm.forward_codes(delayed[:, :, :-1])
++    seq = delayed[:, :, 1:]
++    inputs = []
++    for cb in range(dep_steps):
++        t_in = lm.depformer_in[cb](transformer_out)
++        if cb == 0:
++            tok = lm.depformer_text_emb(seq[:, 0])
++        else:
++            tok = lm.depformer_emb[cb - 1](seq[:, cb + lm.audio_offset - 1])
++        inputs.append(tok + t_in)
++    dep_in = torch.stack(inputs, 2).view(B * T, dep_steps, -1)
++    dep_out = lm.depformer(dep_in)
++    logits = torch.stack([lm.linears[cb](dep_out[:, cb]).view(B, T, -1) for cb in range(dep_steps)], 1)
++    a0 = lm.audio_offset
++    logits, mask = _undelay_sequence(lm.delays[a0:a0 + dep_steps], logits, fill_value=float("NaN"))
++    mask &= codes[:, a0:a0 + dep_steps] != lm.zero_token_id
++    text_logits, text_mask = _undelay_sequence(lm.delays[:1], text_logits, fill_value=float("NaN"))
++    text_mask &= codes[:, :1] != lm.zero_token_id
++    return LMOutput(logits, mask, text_logits, text_mask)
++
++
++def prefix_keep_mask(prefix_len: torch.Tensor, T: int) -> torch.Tensor:
++    """[B, 1, T] bool, False over each sample's prompt prefix."""
++    ar = torch.arange(T, device=prefix_len.device)
++    return (ar[None, :] >= prefix_len[:, None])[:, None, :]
++
++
++def masked_losses(out: LMOutput, codes, prefix_len, first_cb_mult, text_padding_weight, text_pad_ids,
++                  dep_steps: int = 8):
++    """moshi-finetune's compute_loss_with_mask math (text and audio terms, each normalised by its
++    weight sum, total = text + audio), with the prompt prefix masked and audio limited to the
++    dep_steps agent codebooks (rows 1..dep_steps). Also returns per-codebook unweighted CE for logging."""
++    T = codes.shape[-1]
++    keep = prefix_keep_mask(prefix_len, T)
++    tmask = out.text_mask & keep
++    amask = out.mask & keep
++    # text
++    tgt = torch.where(tmask, codes[:, :1], torch.zeros_like(codes[:, :1]))
++    w = tmask.float()
++    for i in text_pad_ids:
++        w[tgt == i] *= text_padding_weight
++    ce_t = nn.functional.cross_entropy(out.text_logits.reshape(-1, out.text_logits.size(-1)).float(),
++                                       tgt.reshape(-1), reduction="none")
++    wv = w.reshape(-1)
++    ce_t = torch.where(wv > 0, ce_t * wv, torch.zeros_like(ce_t))
++    text_loss = ce_t.sum() / wv.sum()
++    # audio (agent rows only)
++    acodes = codes[:, 1:1 + dep_steps]
++    tgt = torch.where(amask, acodes, torch.zeros_like(acodes))
++    w = amask.float()
++    w[:, 0] *= first_cb_mult
++    ce_a = nn.functional.cross_entropy(out.logits.reshape(-1, out.logits.size(-1)).float(),
++                                       tgt.reshape(-1), reduction="none")
++    wv = w.reshape(-1)
++    ce_aw = torch.where(wv > 0, ce_a * wv, torch.zeros_like(ce_a))
++    audio_loss = ce_aw.sum() / wv.sum()
++    with torch.no_grad():
++        m = amask.float()
++        ce = torch.where(m.reshape(-1) > 0, ce_a, torch.zeros_like(ce_a)).view_as(m)
++        per_cb = ce.sum(dim=(0, 2)) / m.sum(dim=(0, 2)).clamp(min=1)
++        stats = {"text": text_loss.detach(), "cb1": per_cb[0], "cb2_8": per_cb[1:].mean(),
++                 "n_real_tokens": tmask.sum() + amask.sum()}
++    return text_loss + audio_loss, text_loss, audio_loss, stats
++
++
++@torch.no_grad()
++def adapter_state_dict(lm, ft_embed: bool, dep_steps: int, dtype=torch.bfloat16) -> dict:
++    """Keys: '<PP param name>.lora_A' [n,r,in], '<PP param name>.lora_B' [n,out,r] (n = 1 or per-step
++    block count), plus full embedding tables under their PP names when ft_embed."""
++    sd = {}
++    for mname, mod in lm.named_modules():
++        if parametrize.is_parametrized(mod):
++            for attr, plist in mod.parametrizations.items():
++                lw = plist[0]
++                key = f"{mname}.{attr}" if mname else attr
++                sd[key + ".lora_A"] = lw.lora_A.detach().to(dtype).cpu().contiguous()
++                sd[key + ".lora_B"] = lw.lora_B.detach().to(dtype).cpu().contiguous()
++    if ft_embed:
++        for n, p in lm.named_parameters():
++            if is_trainable_emb(n, dep_steps):
++                sd[n] = p.detach().to(dtype).cpu().contiguous()
++    return dict(sorted(sd.items()))

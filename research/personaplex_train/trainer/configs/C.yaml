@@ -1,0 +1,37 @@
+# Config C: config A with max_steps=3000 and lr halved (1e-6).
+# (A = moshi_7B.yaml with rank 64 / scaling 2, all-linear LoRA incl. depformer, max_steps 1500.)
+data:
+  eval_data: ''
+  shuffle: true
+  train_data: ''            # train_run.sh: /workspace/hinglish/data/<V>/train/train.jsonl
+moshi_paths:
+  hf_repo_id: nvidia/personaplex-7b-v1
+full_finetuning: false
+lora:
+  enable: true
+  rank: 64
+  scaling: 2.0
+  ft_embed: false
+first_codebook_weight_multiplier: 100.0
+text_padding_weight: 0.5
+duration_sec: 100
+batch_size: 16              # train_run.sh BATCH= overrides (as fits in memory / time)
+max_steps: 3000
+gradient_checkpointing: true
+optim:
+  lr: 1.0e-06
+  weight_decay: 0.1
+  pct_start: 0.05
+seed: 0
+log_freq: 10
+eval_freq: 0
+do_eval: false
+do_ckpt: true
+ckpt_freq: 250
+num_ckpt_keep: null         # keep every 250-step checkpoint (~0.36 GB each, ~1 GB with ft_embed)
+save_adapters: true
+run_dir: ''
+voice_codes_dir: /workspace/hinglish/trainer/voice_codes
+dep_train_steps: 8
+metrics_freq: 10
+plot_freq: 100

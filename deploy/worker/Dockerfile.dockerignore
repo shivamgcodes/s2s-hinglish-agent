@@ -1,0 +1,20 @@
+# BuildKit reads this next to deploy/worker/Dockerfile (Dockerfile-specific ignore file). Build context = the repo root.
+# Whitelist (D-MONOREPO-LAYOUT 2026-10-07): only deploy/common/{s2s_token.py,session.py,data/records_v4.json},
+# deploy/worker/ (minus the dirs below) and the shared runtime packages are sent. research/, docs/, deploy/{client,space,
+# ops,tests}/ and packages/hinglish_text/ (data-build only) never enter the context.
+*
+!deploy/common/s2s_token.py
+!deploy/common/session.py
+!deploy/common/data/records_v4.json
+!deploy/worker/
+deploy/worker/local/
+deploy/worker/tests/
+deploy/worker/tools/
+deploy/worker/build/
+!packages/needle_router/
+!packages/personaplex_lora/
+**/__pycache__/
+**/*.pyc
+**/.venvs/
+**/build/
+**/*.egg-info/

@@ -3,19 +3,21 @@ __pycache__/
 .venv*/
 .venvs/
 node_modules/
-# built / staged artefacts (ops/stage_space.sh, run_local.sh setup)
-client/dist/
-space/static/
-space/common/
-space/tests/out_e2e/
-worker/build/
+# built / staged artefacts (deploy/ops/stage_space.sh, deploy/run_local.sh setup)
+deploy/client/dist/
+deploy/space/static/
+deploy/space/common/
+deploy/space/tests/out_e2e/
+deploy/worker/build/
 # local runs and test output
 .local-run/
 .test-out/
-results/
+/results/
 # never commit secrets
 .env
 .env.local
 *.local
 secrets.env
 *.pem
+build/
+*.egg-info/

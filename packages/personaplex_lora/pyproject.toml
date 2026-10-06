@@ -1,0 +1,27 @@
+# pip install "git+https://github.com/shivamgcodes/s2s-hinglish-agent#subdirectory=packages/personaplex_lora"
+# (D-LEAN-HF 2026-10-07: the HF model repo shivamgupta/personaplex-hinglish-v4-lora holds only the adapter + config +
+# examples + card; this package is the one copy of the merge + role-prompt code.)
+# torch, safetensors and the PersonaPlex `moshi` package are NOT pip dependencies here: install PersonaPlex per its
+# own steps (github.com/NVIDIA/personaplex; the matching torch/CUDA wheels), then this package. role_prompt needs
+# nothing beyond the standard library.
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "personaplex-lora"
+version = "4.0.0"
+description = "Merge a moshi-finetune PersonaPlex LoRA (personaplex_weight_lora_v1) in memory + the record/pairing -> role prompt/voice format"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+merge = ["safetensors"]    # + torch and moshi (PersonaPlex), installed separately
+
+[tool.setuptools]
+package-dir = {"personaplex_lora" = "."}
+packages = ["personaplex_lora", "personaplex_lora.infer", "personaplex_lora.trainer"]
+
+[tool.setuptools.package-data]
+"personaplex_lora.trainer" = ["voice_codes/*.pt"]

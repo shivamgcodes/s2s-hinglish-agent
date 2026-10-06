@@ -1,0 +1,20 @@
+dest_path	source	source_md5	note
+research/audio/F5_BACKEND.md	runpod:/workspace/hinglish/audio/F5_BACKEND.md	b806cdbaf6947d79c8452035f729e2cd	verbatim
+research/audio/align.py	runpod:/workspace/hinglish/audio/align.py	e56621ee4bee7d4449a90229df3c1352	verbatim
+research/audio/asr.py	runpod:/workspace/hinglish/audio/asr.py	33489481b58cf220595567c000581923	verbatim
+research/audio/assemble.py	runpod:/workspace/hinglish/audio/assemble.py	fbf2fe2c8d4dae1ed3e41a33a87d8413	modified: --holdout default <- env HINGLISH_ROOT
+research/audio/f5_scripttest.py	runpod:/workspace/hinglish/audio/f5_scripttest.py	5bb0c013e12bc1d6040a198c4bd9f61e	verbatim
+research/audio/f5cs.py	runpod:/workspace/hinglish/audio/f5cs.py	3c0226f480f42c538d34ddabb9399262	verbatim
+research/audio/holdout.py	runpod:/workspace/hinglish/audio/holdout.py	1f579b71b524dcce34cb077f89a29f9a	modified: SC<-env HINGLISH_GUIDANCE or research/data_gen/guidance; OUT default <- env HINGLISH_ROOT
+research/audio/qc.py	runpod:/workspace/hinglish/audio/qc.py	a6ec6a779aaa62c12c83483cda6239d4	verbatim
+research/audio/run_e2e.sh	runpod:/workspace/hinglish/audio/run_e2e.sh	f313942d14a8c9d1416f2b81d3e31b73	verbatim
+research/audio/run_e2e2.sh	runpod:/workspace/hinglish/audio/run_e2e2.sh	035db650416ef769548f50cba41ec0f0	verbatim
+research/audio/run_e2e3.sh	runpod:/workspace/hinglish/audio/run_e2e3.sh	b9f9d4a3284dfe77b437f0c2f96665f1	verbatim
+research/audio/run_scripttest.sh	runpod:/workspace/hinglish/audio/run_scripttest.sh	362654017a9c90dcb2b03519aaef42f3	verbatim
+research/audio/run_scripttest2.sh	runpod:/workspace/hinglish/audio/run_scripttest2.sh	5e352a7412da65a86d8d44e5e5a9aa52	verbatim
+research/audio/run_test_cpu.sh	runpod:/workspace/hinglish/audio/run_test_cpu.sh	54ead3c74fef82cfa5c4d086844d08cb	verbatim
+research/audio/run_variant.sh	runpod:/workspace/hinglish/audio/run_variant.sh	5c3a98893ccfbba142852ded39112e19	modified: A (code dir) <- ${AUDIO_DIR:-/workspace/hinglish/audio}
+research/audio/synth.py	runpod:/workspace/hinglish/audio/synth.py	d2de971341135a47b171e20e86301df8	verbatim
+research/audio/trelis_m1.py	runpod:/workspace/hinglish/audio/trelis_m1.py	907c1e0962687290f66d983a45c8058f	verbatim
+research/audio/tts_backends.py	runpod:/workspace/hinglish/audio/tts_backends.py	a168dee79fa7ab5854a7333d75855486	verbatim
+research/audio/tts_norm.py	runpod:/workspace/hinglish/audio/tts_norm.py	73cec6b98436a386fe6829fc3ae74414	verbatim

@@ -1,8 +1,10 @@
 # S2S serverless worker image: build with ALL weights baked in and push to the PRIVATE Docker Hub repo
 # docker.io/<DOCKERHUB_USER>/s2s-worker (DECISIONS D-BAKE, 2026-10-06).
 # Repo: github.com/shivamgcodes/s2s-hinglish-agent (monorepo, D-MONOREPO 2026-10-06; was s2s-worker's build.yml).
-# Build context = the repo root (worker/Dockerfile COPYs common/ and worker/); BuildKit applies
-# worker/Dockerfile.dockerignore (a whitelist: client/, space/, docs/, ops/, tests/ never enter the context).
+# Build context = the repo root (deploy/worker/Dockerfile COPYs deploy/common, deploy/worker and the shared runtime
+# packages packages/{needle_router,personaplex_lora}); BuildKit applies deploy/worker/Dockerfile.dockerignore
+# (a whitelist: research/, docs/, deploy/{client,space,ops,tests}/ never enter the context). D-MONOREPO-LAYOUT 2026-10-07.
+# Triggers: manual dispatch and v* tags only, never a plain push, so research/ (or docs) changes never start a build.
 #
 # Two phases, because the runner disk (72 GB, ~14 GB free, no separate /mnt) cannot hold a 16 GB BuildKit layer and
 # its compressed blob at once (attempt 1: ENOSPC):
@@ -11,7 +13,9 @@
 #      one appended layer with crane (no local blob): :<sha12> and :latest                (~16.5 GB disk peak)
 #
 # Secrets (repo settings -> Secrets and variables -> Actions):
-#   HF_TOKEN         HF token with read access to nvidia/personaplex-7b-v1 (gated) and shivamgupta/s2s-v4-assets.
+#   HF_TOKEN         HF token with read access to nvidia/personaplex-7b-v1 (gated) and, while they are private, the model
+#                    repos shivamgupta/personaplex-hinglish-v4-lora + shivamgupta/needle-hinglish-router-v2 (D-ASSET-SWITCH;
+#                    the old private bundle shivamgupta/s2s-v4-assets is no longer read).
 #                    Phase 1: ONLY a BuildKit secret (id=hf_token), never a build-arg, never in a layer.
 #                    Phase 2: an env var of one step, sent only to huggingface.co (curl drops it on the CDN redirect).
 #   DOCKERHUB_USER   Docker Hub username
@@ -89,7 +93,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Static Dockerfile check
-        run: python3 worker/tests/check_dockerfile.py --root . --dockerfile worker/Dockerfile --ignore worker/Dockerfile.dockerignore
+        run: python3 deploy/worker/tests/check_dockerfile.py --root . --dockerfile deploy/worker/Dockerfile --ignore deploy/worker/Dockerfile.dockerignore
+
+      - name: Static asset allowlist check (only the manifest's pinned files from the two model repos + the Needle engine wheel)
+        run: python3 deploy/worker/tests/check_manifest.py --manifest deploy/worker/assets_manifest.json
 
       - name: Tags
         id: tags
@@ -107,8 +114,8 @@ jobs:
           echo "extra=$X" >> "$GITHUB_OUTPUT"
           echo "base $IMG:base-$SHA -> final $IMG:$SHA, latest $X"
 
-      - name: Root .dockerignore for this build (= worker/Dockerfile.dockerignore; belt and braces, BuildKit also reads it next to the Dockerfile)
-        run: cp worker/Dockerfile.dockerignore .dockerignore
+      - name: Root .dockerignore for this build (= deploy/worker/Dockerfile.dockerignore; belt and braces, BuildKit also reads it next to the Dockerfile)
+        run: cp deploy/worker/Dockerfile.dockerignore .dockerignore
 
       - uses: docker/setup-buildx-action@v3
 
@@ -121,7 +128,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: worker/Dockerfile
+          file: deploy/worker/Dockerfile
           push: true
           provenance: false
           sbom: false

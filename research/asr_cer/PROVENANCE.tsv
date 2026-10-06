@@ -1,0 +1,113 @@
+dest_path	source	md5 (dest)	modified
+research/asr_cer/cer_study/COMPARISON.md	laptop:~/Desktop/S2S/hinglish/cer_study/COMPARISON.md (source md5 515ba1a25fce6330d46c4bd10e287f4c)	97c6c9d9af2b38e6cbe33a9f2964a492	modified: laptop paths -> repo-relative
+research/asr_cer/cer_study/cer_trelis_workflow.js	laptop:~/Desktop/S2S/hinglish/cer_study/cer_trelis_workflow.js (source md5 2f2c97f64fdecba59ef28ef9016eb668)	cd04f0138413ee04ded83710ba5447e5	modified: laptop paths -> placeholder D='/path/to/cer_study' and repo-relative score.py reference
+research/asr_cer/cer_study/compare.py	laptop:~/Desktop/S2S/hinglish/cer_study/compare.py	39dc30ecbce73f863270e9d67a6af8c2	verbatim
+research/asr_cer/cer_study/trelis/COMPARISON_TRELIS.md	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/COMPARISON_TRELIS.md (source md5 9be8dacce9b6d4171998c6d3c168a106)	1dda59c1072a1594f6b54c05724d68ec	modified: laptop paths -> repo-relative
+research/asr_cer/cer_study/trelis/TRANSCRIBE.md	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/TRANSCRIBE.md	9a7bd84adb0142e3fe5a5bf5144cda89	verbatim
+research/asr_cer/cer_study/trelis/compare_trelis.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/compare_trelis.py (source md5 2eb5a8867fb1b8a89d6180a93369666c)	9dce7e3eeb7b2dfa0ac44fb02e0d5815	modified: docstring: laptop score.py path -> repo-relative (code unchanged)
+research/asr_cer/cer_study/trelis/m1/V1_A__ecom_07_g4/score.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m1/V1_A__ecom_07_g4/score.py	de2edef27155ec8049099f2af9193782	verbatim
+research/asr_cer/cer_study/trelis/m1/V1_A__food_11_g2/score.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m1/V1_A__food_11_g2/score.py	649d232eddaa850eb63d5e0a91ad530c	verbatim
+research/asr_cer/cer_study/trelis/m1/V1_A__food_12_g3/score.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m1/V1_A__food_12_g3/score.py	8b2af98cfc841b97a819934862d526dc	verbatim
+research/asr_cer/cer_study/trelis/m1/V1_A__sub_11_g3/score.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m1/V1_A__sub_11_g3/score.py	d660c0c17820996cd7f23da19dba3ce5	verbatim
+research/asr_cer/cer_study/trelis/m1/V1_B__air_16_g4/score.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m1/V1_B__air_16_g4/score.py	34bc927e5a9999f181a204ba5387b05b	verbatim
+research/asr_cer/cer_study/trelis/m1/V1_B__ecom_11_g1/score.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m1/V1_B__ecom_11_g1/score.py	df61f06d392a8cd9f995937fd86eee03	verbatim
+research/asr_cer/cer_study/trelis/m1/V1_C__air_03_g1/score.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m1/V1_C__air_03_g1/score.py	00653e06037b8594761e19e17d38cd3d	verbatim
+research/asr_cer/cer_study/trelis/m1/V1_C__cab_07_g3/score.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m1/V1_C__cab_07_g3/score.py	e180d199eb33f3b1e26056ccb3c9e3fa	verbatim
+research/asr_cer/cer_study/trelis/m1/base_V1__cab_11_g4/score.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m1/base_V1__cab_11_g4/score.py	d675d014a4dac6dcea9a4d69c36fa60d	verbatim
+research/asr_cer/cer_study/trelis/m1/base_V1__sub_07_g2/score.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m1/base_V1__sub_07_g2/score.py	34aa97659ea2381704cab578761d5358	verbatim
+research/asr_cer/cer_study/trelis/m2/V1_A__ecom_07_g4/build_map.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/V1_A__ecom_07_g4/build_map.py	fce76b22cd07c8ce11b68e5a2486bb98	verbatim
+research/asr_cer/cer_study/trelis/m2/V1_A__ecom_07_g4/build_word_map.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/V1_A__ecom_07_g4/build_word_map.py	0793472c19e0c9676ba22b984553236f	verbatim
+research/asr_cer/cer_study/trelis/m2/V1_A__ecom_07_g4/verify_and_metrics.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/V1_A__ecom_07_g4/verify_and_metrics.py	f5297623c8bf01e47fdcd876a3bacf44	verbatim
+research/asr_cer/cer_study/trelis/m2/V1_A__food_11_g2/align.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/V1_A__food_11_g2/align.py	32a8c6f0c11f3c96c2bdd06907a845c8	verbatim
+research/asr_cer/cer_study/trelis/m2/V1_A__food_11_g2/build_word_map.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/V1_A__food_11_g2/build_word_map.py	a4d9b0d4c8d65a7b9c573170accc7d86	verbatim
+research/asr_cer/cer_study/trelis/m2/V1_A__food_11_g2/metrics.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/V1_A__food_11_g2/metrics.py	cfe7d6dbf81bc42ccf64a11f8b3e0257	verbatim
+research/asr_cer/cer_study/trelis/m2/V1_A__food_12_g3/align.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/V1_A__food_12_g3/align.py	0669fe9cdd4b9245bbd3be1fe8385435	verbatim
+research/asr_cer/cer_study/trelis/m2/V1_A__food_12_g3/build_word_map.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/V1_A__food_12_g3/build_word_map.py	7dd0e0aa795ba8c002e1111564593cfa	verbatim
+research/asr_cer/cer_study/trelis/m2/V1_A__sub_11_g3/align.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/V1_A__sub_11_g3/align.py	d7b8bfa636696e41c0d193c3d02b0fe6	verbatim
+research/asr_cer/cer_study/trelis/m2/V1_A__sub_11_g3/build_word_map.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/V1_A__sub_11_g3/build_word_map.py	adf29cffb54ef0480bd7250ff5f087b5	verbatim
+research/asr_cer/cer_study/trelis/m2/V1_A__sub_11_g3/finalize.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/V1_A__sub_11_g3/finalize.py	c16bdb26183ba5a17fd54a768233ee72	verbatim
+research/asr_cer/cer_study/trelis/m2/V1_B__air_16_g4/align.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/V1_B__air_16_g4/align.py	987f152449ccabebdba52e023b941a24	verbatim
+research/asr_cer/cer_study/trelis/m2/V1_B__air_16_g4/build_word_map.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/V1_B__air_16_g4/build_word_map.py	395d93e1357d2d01c6c1cb04e4bb3a2d	verbatim
+research/asr_cer/cer_study/trelis/m2/V1_B__air_16_g4/verify_metrics.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/V1_B__air_16_g4/verify_metrics.py	ad2acf3078752624796bd9d35b468ec7	verbatim
+research/asr_cer/cer_study/trelis/m2/V1_B__ecom_11_g1/align.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/V1_B__ecom_11_g1/align.py	82e9497acd1c1a3ef552eb852ea269e9	verbatim
+research/asr_cer/cer_study/trelis/m2/V1_B__ecom_11_g1/build_word_map.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/V1_B__ecom_11_g1/build_word_map.py	8b4c3e49147a201c6b6639c2e786b421	verbatim
+research/asr_cer/cer_study/trelis/m2/V1_B__ecom_11_g1/metrics.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/V1_B__ecom_11_g1/metrics.py	ba6d32faa8a8f094df5ed7abd0396301	verbatim
+research/asr_cer/cer_study/trelis/m2/V1_C__air_03_g1/build_char_map.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/V1_C__air_03_g1/build_char_map.py	46cd5d63448f78e379880dbf6d605ae7	verbatim
+research/asr_cer/cer_study/trelis/m2/V1_C__air_03_g1/build_word_map.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/V1_C__air_03_g1/build_word_map.py	ad5b63ca5c44c52790051820b62088da	verbatim
+research/asr_cer/cer_study/trelis/m2/V1_C__cab_07_g3/build_map.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/V1_C__cab_07_g3/build_map.py	d67677a5de368cf192e71920bad24546	verbatim
+research/asr_cer/cer_study/trelis/m2/V1_C__cab_07_g3/build_word_map.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/V1_C__cab_07_g3/build_word_map.py	b1bdfc1a87b68ac0bb7afb853ca7c049	verbatim
+research/asr_cer/cer_study/trelis/m2/base_V1__cab_11_g4/build_map.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/base_V1__cab_11_g4/build_map.py	eda63000477f594a20c2d5a7e6e4c128	verbatim
+research/asr_cer/cer_study/trelis/m2/base_V1__cab_11_g4/build_word_map.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/base_V1__cab_11_g4/build_word_map.py	4c5b5b84e4f7bf440bd4702536491a71	verbatim
+research/asr_cer/cer_study/trelis/m2/base_V1__sub_07_g2/build_map.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/base_V1__sub_07_g2/build_map.py	4bb2fbefe953de636e4b2c96499eacb2	verbatim
+research/asr_cer/cer_study/trelis/m2/base_V1__sub_07_g2/build_word_map.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/base_V1__sub_07_g2/build_word_map.py	6c1a12c3a0c3c8f3738a99bd952ca2db	verbatim
+research/asr_cer/cer_study/trelis/m2/base_V1__sub_07_g2/normalize.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/base_V1__sub_07_g2/normalize.py	0ffc4ed511b75c029914bd6446a7c059	verbatim
+research/asr_cer/cer_study/trelis/m2/base_V1__sub_07_g2/verify_and_metrics.py	laptop:~/Desktop/S2S/hinglish/cer_study/trelis/m2/base_V1__sub_07_g2/verify_and_metrics.py	3e769ea13d154a81adf84b5b65bbc399	verbatim
+research/asr_cer/cer_study/w1_romanise/V1_A__ecom_07_g4/score_w1.py	laptop:~/Desktop/S2S/hinglish/cer_study/w1_romanise/V1_A__ecom_07_g4/score_w1.py	3178ec6b0a6cdc7a179053767478484e	verbatim
+research/asr_cer/cer_study/w1_romanise/V1_A__food_11_g2/score_w1.py	laptop:~/Desktop/S2S/hinglish/cer_study/w1_romanise/V1_A__food_11_g2/score_w1.py	6daaacbe735c2c417e8192aa275ee0d5	verbatim
+research/asr_cer/cer_study/w1_romanise/V1_A__food_12_g3/score_w1.py	laptop:~/Desktop/S2S/hinglish/cer_study/w1_romanise/V1_A__food_12_g3/score_w1.py	b07b334cc93af0881fc337532c5f018d	verbatim
+research/asr_cer/cer_study/w1_romanise/V1_A__sub_11_g3/score_w1.py	laptop:~/Desktop/S2S/hinglish/cer_study/w1_romanise/V1_A__sub_11_g3/score_w1.py	223362f433e0484035a2d4e428481f25	verbatim
+research/asr_cer/cer_study/w1_romanise/V1_B__air_16_g4/score_w1.py	laptop:~/Desktop/S2S/hinglish/cer_study/w1_romanise/V1_B__air_16_g4/score_w1.py	23f42e3f25b129311c628531729e0993	verbatim
+research/asr_cer/cer_study/w1_romanise/V1_B__ecom_11_g1/score_w1.py	laptop:~/Desktop/S2S/hinglish/cer_study/w1_romanise/V1_B__ecom_11_g1/score_w1.py	18859047a4709d389f63eee468e352b1	verbatim
+research/asr_cer/cer_study/w1_romanise/V1_C__air_03_g1/score_w1.py	laptop:~/Desktop/S2S/hinglish/cer_study/w1_romanise/V1_C__air_03_g1/score_w1.py	5ee26a4e562a79bb368b2c48b9d9e998	verbatim
+research/asr_cer/cer_study/w1_romanise/V1_C__cab_07_g3/score_w1.py	laptop:~/Desktop/S2S/hinglish/cer_study/w1_romanise/V1_C__cab_07_g3/score_w1.py	e75da5fbababb40a252ddb94b2047845	verbatim
+research/asr_cer/cer_study/w1_romanise/base_V1__cab_11_g4/score_w1.py	laptop:~/Desktop/S2S/hinglish/cer_study/w1_romanise/base_V1__cab_11_g4/score_w1.py	e1c5be4b77e1104e4f0bdfdd01de43d8	verbatim
+research/asr_cer/cer_study/w1_romanise/base_V1__sub_07_g2/score_w1.py	laptop:~/Desktop/S2S/hinglish/cer_study/w1_romanise/base_V1__sub_07_g2/score_w1.py	8177fddab57d5cc814980f0032c96484	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_A__ecom_07_g4/align.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_A__ecom_07_g4/align.py	1258927591890be77e127de74dbc4eb2	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_A__ecom_07_g4/build.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_A__ecom_07_g4/build.py	84b7f363db4a8e5d17f275ba9ba9033a	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_A__ecom_07_g4/norm.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_A__ecom_07_g4/norm.py	bd8a5a119d80d6ecaaba3e549672910b	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_A__ecom_07_g4/verify_check.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_A__ecom_07_g4/verify_check.py	1138bb9de9a8fb177c23e83e1c3f4436	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_A__ecom_07_g4/word_align.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_A__ecom_07_g4/word_align.py	b1ea5a5ca94da43744dafe7cc06b3e9d	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_A__food_11_g2/align.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_A__food_11_g2/align.py	3f1a29e3773a5cd21558d2d0fb8dc659	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_A__food_11_g2/build_map.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_A__food_11_g2/build_map.py	0483e0c55cf5181c559c3ff8e005509b	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_A__food_11_g2/build_word_map.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_A__food_11_g2/build_word_map.py	7f23c72b3d2e3925197c989ac1f008ee	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_A__food_11_g2/norm.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_A__food_11_g2/norm.py	74a6229e35ee2255613bdf4e12ae7319	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_A__food_11_g2/verify_check.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_A__food_11_g2/verify_check.py	bf9c821da48b1a79a2dc31271717b0a3	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_A__food_12_g3/charmap.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_A__food_12_g3/charmap.py	709242bca2329a943eaf55e027e88a6d	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_A__food_12_g3/tok.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_A__food_12_g3/tok.py	06a6dc4aeb0b5947b309fb6ace5b41d3	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_A__food_12_g3/verify_maps.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_A__food_12_g3/verify_maps.py	a161003f3fe071cb140ec12df57728a5	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_A__food_12_g3/wordmap.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_A__food_12_g3/wordmap.py	d9e7b8e3a67a49a38133c21230f53a53	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_A__food_12_g3/write_verify.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_A__food_12_g3/write_verify.py	4025e3a8873ccd05246cdef300e93f75	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_A__sub_11_g3/align.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_A__sub_11_g3/align.py	38ee1f4f8e8fd40d7809e0386bfc7ed6	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_A__sub_11_g3/finalize.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_A__sub_11_g3/finalize.py	42255009bd17f37ed46d5edafe64b719	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_A__sub_11_g3/verify_check.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_A__sub_11_g3/verify_check.py	c2e51c7c875e4f69ea44b6262d70bfa6	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_A__sub_11_g3/word_align.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_A__sub_11_g3/word_align.py	4a33f4a664daec2871c9f7f69200c840	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_A__sub_11_g3/write_verify.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_A__sub_11_g3/write_verify.py	74ba004770f999c7c6cea05a7536fe27	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_B__air_16_g4/align.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_B__air_16_g4/align.py	fb5e30d856be1f052490102a0725d29b	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_B__air_16_g4/verify_recount.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_B__air_16_g4/verify_recount.py	5317f843667e33acc0b04c222c592f9a	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_B__air_16_g4/word_align.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_B__air_16_g4/word_align.py	7db99d3f6e36e4ea9fc6c6d2a8cfb9f2	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_B__air_16_g4/word_norm.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_B__air_16_g4/word_norm.py	fd3ceb4f3cac25b7b56c65497ebb3df5	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_B__air_16_g4/write_verify.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_B__air_16_g4/write_verify.py	ec534ea62ce6bffa074b4b8f053b5a2b	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_B__ecom_11_g1/build_map.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_B__ecom_11_g1/build_map.py	5a29def68322196b1d70a11921382de5	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_B__ecom_11_g1/build_word_map.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_B__ecom_11_g1/build_word_map.py	d9d842546202b930f6866b5b2f822104	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_B__ecom_11_g1/tok.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_B__ecom_11_g1/tok.py	dcbc5f528bcef4b169085d2419a55c3d	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_B__ecom_11_g1/verify_maps.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_B__ecom_11_g1/verify_maps.py	e2a74420fc0ff015612d6b474d8645ea	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_B__ecom_11_g1/write_verify.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_B__ecom_11_g1/write_verify.py	843e909ad690fd342ac6864d74588702	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_C__air_03_g1/align.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_C__air_03_g1/align.py	70d5a4d0a33a4d3318ab703813db464a	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_C__air_03_g1/finalize.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_C__air_03_g1/finalize.py	70574659f63d84496feb4a935a53e6a5	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_C__air_03_g1/fix.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_C__air_03_g1/fix.py	541d67fde052870779b4789eedb23909	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_C__air_03_g1/tok.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_C__air_03_g1/tok.py	2184e7bec42c2a4d4bbbd9e7a4c82dfb	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_C__air_03_g1/verify_check.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_C__air_03_g1/verify_check.py	3f69802cb57efa283a855b38850b3c00	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_C__air_03_g1/word_align.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_C__air_03_g1/word_align.py	14ffdaba1154043bfda232b41b14fe58	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_C__cab_07_g3/align.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_C__cab_07_g3/align.py	83055358db6a12610497629e8c5ec64a	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_C__cab_07_g3/verify_maps.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_C__cab_07_g3/verify_maps.py	bbd6938d39d9bfde7afc360df7a5094d	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_C__cab_07_g3/word_align.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_C__cab_07_g3/word_align.py	03559835e80c52dd2960e2d649b20a4b	verbatim
+research/asr_cer/cer_study/w2_charmap/V1_C__cab_07_g3/write_verify.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/V1_C__cab_07_g3/write_verify.py	bf0f6c7ba6e8edffb7a638ed8d511132	verbatim
+research/asr_cer/cer_study/w2_charmap/base_V1__cab_11_g4/build_charmap.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/base_V1__cab_11_g4/build_charmap.py	bc5879c6c4f9dd304ff0401fda428a3b	verbatim
+research/asr_cer/cer_study/w2_charmap/base_V1__cab_11_g4/build_wordmap.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/base_V1__cab_11_g4/build_wordmap.py	42f1653e1645ad4473bccb3b876719ee	verbatim
+research/asr_cer/cer_study/w2_charmap/base_V1__cab_11_g4/verify_maps.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/base_V1__cab_11_g4/verify_maps.py	9378b060f42a7c4c94f3f47463020778	verbatim
+research/asr_cer/cer_study/w2_charmap/base_V1__sub_07_g2/charmap.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/base_V1__sub_07_g2/charmap.py	0b645ac4090533e4d0f460420b156bf4	verbatim
+research/asr_cer/cer_study/w2_charmap/base_V1__sub_07_g2/verify.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/base_V1__sub_07_g2/verify.py	e9563d52f37488f86565209dd811c109	verbatim
+research/asr_cer/cer_study/w2_charmap/base_V1__sub_07_g2/verify_write.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/base_V1__sub_07_g2/verify_write.py	99150bb31eb20812aceabda40d3bfd0f	verbatim
+research/asr_cer/cer_study/w2_charmap/base_V1__sub_07_g2/wordmap.py	laptop:~/Desktop/S2S/hinglish/cer_study/w2_charmap/base_V1__sub_07_g2/wordmap.py	412921783b23dcf2fe8f63092540a3f0	verbatim
+research/asr_cer/trelis_calib/ana.py	runpod:/workspace/hinglish/tmp_trelis/ana.py (source md5 de4bc882566963cfa4a012aece601b19)	9eb8ebb006ea6a0fad4d763fb52b3c08	modified: calib.jsonl path under $HINGLISH_ROOT
+research/asr_cer/trelis_calib/calib.py	runpod:/workspace/hinglish/tmp_trelis/calib.py (source md5 e1a66bb917cb55f3fa01b685d6f9dfab)	4ef94127896f56cfe2536934e54506b0	modified: trelis_m1 from research/audio ($AUDIO_DIR); data/out under $HINGLISH_ROOT
+research/asr_cer/trelis_calib/v3chk.py	runpod:/workspace/hinglish/tmp_trelis/v3chk.py (source md5 a65ac054d44c3df9b33768fa8ce3a6c7)	ea50e250d0f71dc5d29f6ab3aebee4c4	modified: synth from research/audio ($AUDIO_DIR); data under $HINGLISH_ROOT
+research/asr_cer/tts_checks/indicf5-check/scripts/analyze.py	laptop:~/Desktop/S2S/indicf5-check/scripts/analyze.py (source md5 168c8dd99f9b083663658eac9d12f9d3)	8df760adc500b5472e984268ba39dac6	modified: docstring: laptop path removed
+research/asr_cer/tts_checks/indicf5-check/scripts/asr.py	laptop:~/Desktop/S2S/indicf5-check/scripts/asr.py	a0263faf87bbfbf58fb7a86c7e1e80d5	verbatim
+research/asr_cer/tts_checks/indicf5-check/scripts/marks.py	laptop:~/Desktop/S2S/indicf5-check/scripts/marks.py	dd8aa1babd12e15721a575b1ebb651fe	verbatim
+research/asr_cer/tts_checks/kokoro-check/analyze.py	laptop:~/Desktop/S2S/kokoro-check/analyze.py	8af8f99c98cb4e60fb8795548cd8a2af	verbatim
+research/asr_cer/tts_checks/kokoro-check/asr.py	laptop:~/Desktop/S2S/kokoro-check/asr.py	fe554d0a0dc5e4c7eba44d0f6b8e138e	verbatim
+research/asr_cer/tts_checks/kokoro-check/asr_long_tail.py	laptop:~/Desktop/S2S/kokoro-check/asr_long_tail.py	536d112f14ca1102145a579f3656a6ff	verbatim
+research/asr_cer/tts_checks/kokoro-check/make_report.py	laptop:~/Desktop/S2S/kokoro-check/make_report.py (source md5 b7c55cf5e98b782b97fe18a9e4339a41)	8b01014918d10bd844e56f687a79cb3a	modified: laptop path in generated report text -> <laptop>/kokoro-check/
+research/asr_cer/tts_checks/review_f5_edge/score.py	runpod:/workspace/hinglish/review_f5/edge/score.py (source md5 e38dfa8f2e133e98f3f0e234057a918e)	cdf363f555906bd4cfa553d6de1dc485	modified: tts_norm/tts_backends from research/audio ($AUDIO_DIR)
+research/asr_cer/tts_checks/tts_ab_f5/asr_all.py	runpod:/workspace/hinglish/tts_ab_f5/scripts/asr_all.py (source md5 519bf9d0b820e796030672a28147cd16)	938488bf236fc63b3f374e1392dfd6fd	modified: ROOT under $HINGLISH_ROOT

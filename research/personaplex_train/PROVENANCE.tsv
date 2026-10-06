@@ -1,0 +1,31 @@
+dest_path	source	source_md5	note
+research/personaplex_train/infer/driver_lora.py	runpod:/workspace/hinglish/infer/driver_lora.py	33a1b51cb90f6154d53da868db708676	modified: lora_merge imported from packages/personaplex_lora/infer (env PP_LORA_INFER_DIR); own dir kept as fallback
+research/personaplex_train/infer/run_driver_lora.sh	runpod:/workspace/hinglish/infer/run_driver_lora.sh	af295fdf98f96cc0c0bc9f4a356f9423	verbatim
+research/personaplex_train/pick_best.py	runpod:/workspace/hinglish/pick_best.py	b6f3f8431740347b18c0086f2f200caf	verbatim
+research/personaplex_train/queue_v1.sh	runpod:/workspace/hinglish/queue_v1.sh	75eedaa7cd3e7bde73044ce721b56b32	modified: H <- ${HINGLISH_ROOT:-/workspace/hinglish}
+research/personaplex_train/queue_v1_tests2.sh	runpod:/workspace/hinglish/queue_v1_tests2.sh	92f02e7f9702eed344657e1e81b533f6	modified: H <- ${HINGLISH_ROOT:-/workspace/hinglish}
+research/personaplex_train/queue_v3_tests.sh	runpod:/workspace/hinglish/queue_v3_tests.sh	ba41b3ab7f0c2b8d4e8fafa16210c1ee	modified: H <- ${HINGLISH_ROOT:-/workspace/hinglish}
+research/personaplex_train/queue_v4_eval.sh	runpod:/workspace/hinglish/queue_v4_eval.sh	bd7982ebab8a15261c94bfab9a6e41c5	modified: H <- ${HINGLISH_ROOT:-/workspace/hinglish}
+research/personaplex_train/queue_v4_eval_1seed.sh	runpod:/workspace/hinglish/queue_v4_eval_1seed.sh	b6d938f4420fdbae16f9adbb4d558e9a	modified: H <- ${HINGLISH_ROOT:-/workspace/hinglish}
+research/personaplex_train/queue_v4_eval_chain.sh	runpod:/workspace/hinglish/queue_v4_eval_chain.sh	0e443393954ba28ce4006a20381a485f	modified: H <- ${HINGLISH_ROOT:-/workspace/hinglish}
+research/personaplex_train/queue_v4_post.sh	runpod:/workspace/hinglish/queue_v4_post.sh	14338e7cdddac566fa03748d4fb7a8c7	modified: H <- ${HINGLISH_ROOT:-/workspace/hinglish}
+research/personaplex_train/queue_v4_rerank.sh	runpod:/workspace/hinglish/queue_v4_rerank.sh	be273a48a196590f8c356cc3268222f2	modified: H <- ${HINGLISH_ROOT:-/workspace/hinglish}
+research/personaplex_train/queue_v4_train.sh	runpod:/workspace/hinglish/queue_v4_train.sh	a5dd356301fd4818198f26f63baa0809	modified: H <- ${HINGLISH_ROOT:-/workspace/hinglish}
+research/personaplex_train/trainer/RECON.md	runpod:/workspace/hinglish/trainer/RECON.md	bc919f7dd2f91315e4dd05dce34b79c5	verbatim
+research/personaplex_train/trainer/build_venv_ft.sh	runpod:/workspace/hinglish/trainer/build_venv_ft.sh	85ef9695acd0832df6af21ec69dc1946	verbatim
+research/personaplex_train/trainer/configs/A.yaml	runpod:/workspace/hinglish/trainer/configs/A.yaml	ac60c289fe6038184308f6c75992f4bd	verbatim
+research/personaplex_train/trainer/configs/B.yaml	runpod:/workspace/hinglish/trainer/configs/B.yaml	ae23b08a65ab48f3ef3dac56900637d2	verbatim
+research/personaplex_train/trainer/configs/C.yaml	runpod:/workspace/hinglish/trainer/configs/C.yaml	c20d95a51050792bba32a61f035c5c97	verbatim
+research/personaplex_train/trainer/eval_heldout.py	runpod:/workspace/hinglish/trainer/eval_heldout.py	260ccae94f7e3013e49dd85fb237d076	modified: moshi-finetune checkout <- env MOSHI_FINETUNE; DATA <- HINGLISH_ROOT; --run_dir default <- RUNS_ROOT
+research/personaplex_train/trainer/ft_smoke.py	runpod:/workspace/hinglish/trainer/ft_smoke.py	311a227486b3802f680ff0bd92af70b2	verbatim
+research/personaplex_train/trainer/make_config.py	runpod:/workspace/hinglish/trainer/make_config.py	fefbc299a5458cb2b7485c014c2cd223	verbatim
+research/personaplex_train/trainer/make_patch.sh	runpod:/workspace/hinglish/trainer/make_patch.sh	9141ccba1457bc0c608506bcebd386bd	verbatim
+research/personaplex_train/trainer/personaplex_prefix.patch	runpod:/workspace/hinglish/trainer/personaplex_prefix.patch	88ee53d9dff4ab29142c3647c4fa6804	verbatim
+research/personaplex_train/trainer/plot_val.py	runpod:/workspace/hinglish/trainer/plot_val.py	7e0086d29c38c77c8695dc2c5778ba86	modified: default run dir <- env RUNS_ROOT
+research/personaplex_train/trainer/preflight.py	runpod:/workspace/hinglish/trainer/preflight.py	055c32b0536b0aa8feab5766dffb8fbb	verbatim
+research/personaplex_train/trainer/run_eval.sh	runpod:/workspace/hinglish/trainer/run_eval.sh	56766a3d68b828fa7fd23c05d5873ea9	verbatim
+research/personaplex_train/trainer/train_run.sh	runpod:/workspace/hinglish/trainer/train_run.sh	dea2320803c8354127802781b6c61b65	modified: RUN <- ${RUNS_ROOT:-/workspace/runs}; T (code dir) <- ${TRAINER_DIR:-/workspace/hinglish/trainer}
+research/personaplex_train/trainer/venv_check.py	runpod:/workspace/hinglish/trainer/venv_check.py	6118bdaae792aaa10751bca2d78546a3	verbatim
+research/personaplex_train/trainer/verify_sample.py	runpod:/workspace/hinglish/trainer/verify_sample.py	7ee5309ee949b3fad5911b58064797c1	modified: data paths <- HINGLISH_ROOT; lora_merge from packages/personaplex_lora/infer (env PP_LORA_INFER_DIR); voice codes from packages/personaplex_lora/trainer/voice_codes (env PP_VOICE_CODES_DIR)
+research/personaplex_train/voice_codes/final_voice.py	runpod:/workspace/hinglish/trainer/voice_codes/final_voice.py	ea1b02d6ce9ccc54c3e2c7c072e22ddc	verbatim
+research/personaplex_train/voice_codes/invert_voice.py	runpod:/workspace/hinglish/trainer/voice_codes/invert_voice.py	4af2bc3cfcbd22a9dba6754e3ab9c799	verbatim

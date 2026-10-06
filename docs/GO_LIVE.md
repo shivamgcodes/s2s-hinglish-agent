@@ -242,13 +242,18 @@ that only the Space holds, use the console (section 3).
 ## Appendix B: updating
 Since D-MONOREPO (2026-10-06), everything is in ONE private repo, `github.com/shivamgcodes/s2s-hinglish-agent`.
 `s2s-worker` and `s2s-space` are retired.
+- **Layout since D-MONOREPO-LAYOUT (2026-10-07):** `packages/` (shared code, one copy), `research/` (code that built
+  the models), `deploy/` (everything below: `ops/`, `worker/`, `space/`, ... are `deploy/ops/`, `deploy/worker/`, ...).
+  This development folder has the same top level.
 - **Code change in this folder:**
-  1. `bash ops/export_monorepo.sh <checkout of s2s-hinglish-agent>`. This runs `ops/scan_secrets.sh`: token shapes,
+  1. `bash deploy/ops/export_monorepo.sh <checkout of s2s-hinglish-agent>`. This runs `ops/scan_secrets.sh`: token shapes,
      the real secret values incl. the passcode, forbidden files and files > 50 MB.
   2. Commit + push the monorepo (only with your go-ahead).
   3. Worker: run the **build-worker-image** workflow in the monorepo (or push a `v*` tag), then set the new
      `:<sha12>` image on the RunPod endpoint (Manage → Edit endpoint → container image).
-  4. Space: `bash ops/push_space.sh --build-client --out /root/space-tree` (dry run: builds the client, stages and scans
+  3a. Router / LoRA code change (`packages/`): nothing to copy anywhere. The HF model repos hold no code (D-LEAN-HF);
+     their cards `pip install` `packages/needle_router` / `packages/personaplex_lora` from this repo.
+  4. Space: `bash deploy/ops/push_space.sh --build-client --out /root/space-tree` (dry run: builds the client, stages and scans
      the tree), then the same command with `--yes`. pod1: `PATH=/root/node/bin:$PATH`; the token is read in place from
      `/workspace/hf/token`.
 - **Client change:** nothing to copy by hand. `push_space.sh --build-client` builds `client/` → `client/dist` →

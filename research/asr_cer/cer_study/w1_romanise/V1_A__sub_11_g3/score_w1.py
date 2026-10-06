@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+"""W1 scoring: CER/WER of romanised Whisper hypothesis vs model text-stream reference (stdlib only)."""
+import json, os, re
+
+D = os.path.dirname(os.path.abspath(__file__))
+
+
+def norm(s):
+    s = s.lower()
+    s = "".join(c if (c.isalnum() or c == "'") else " " for c in s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def lev(r, h):
+    """Levenshtein with backtrace; returns (dist, S, D, I)."""
+    n, m = len(r), len(h)
+    dp = [[0] * (m + 1) for _ in range(n + 1)]
+    for i in range(n + 1):
+        dp[i][0] = i
+    for j in range(m + 1):
+        dp[0][j] = j
+    for i in range(1, n + 1):
+        for j in range(1, m + 1):
+            c = 0 if r[i - 1] == h[j - 1] else 1
+            dp[i][j] = min(dp[i - 1][j - 1] + c, dp[i - 1][j] + 1, dp[i][j - 1] + 1)
+    S = Dl = I = 0
+    i, j = n, m
+    while i > 0 or j > 0:
+        if i > 0 and j > 0 and dp[i][j] == dp[i - 1][j - 1] + (0 if r[i - 1] == h[j - 1] else 1):
+            if r[i - 1] != h[j - 1]:
+                S += 1
+            i, j = i - 1, j - 1
+        elif i > 0 and dp[i][j] == dp[i - 1][j] + 1:
+            Dl += 1
+            i -= 1
+        else:
+            I += 1
+            j -= 1
+    assert S + Dl + I == dp[n][m]
+    return dp[n][m], S, Dl, I
+
+
+ref = norm(open(os.path.join(D, "reference.txt"), encoding="utf-8").read())
+hyp = norm(open(os.path.join(D, "whisper_roman.txt"), encoding="utf-8").read())
+
+cd, cS, cD, cI = lev(list(ref), list(hyp))
+rw, hw = ref.split(), hyp.split()
+wd, wS, wD, wI = lev(rw, hw)
+
+out = {
+    "pair": "V1_A__sub_11_g3",
+    "cer": round(cd / len(ref), 4),
+    "cer_edits": cd, "cer_S": cS, "cer_D": cD, "cer_I": cI,
+    "ref_chars": len(ref), "hyp_chars": len(hyp),
+    "wer": round(wd / len(rw), 4),
+    "wer_edits": wd, "wer_S": wS, "wer_D": wD, "wer_I": wI,
+    "ref_words": len(rw), "hyp_words": len(hw),
+    "ref_normalised": ref,
+    "hyp_normalised": hyp,
+    "scorepy_cer_raw": 0.4885,
+    "scorepy_cer_fold": 0.2259,
+}
+json.dump(out, open(os.path.join(D, "metrics.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+print(json.dumps({k: v for k, v in out.items() if not k.endswith("normalised")}, indent=2))
