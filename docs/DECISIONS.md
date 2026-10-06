@@ -1212,3 +1212,19 @@ RunPod or the HF Space.
   the monorepo and note that it is private until release. The local copies in `hinglish/hf_model_repos/` mirror this.
 - **The image build is unaffected:** `assets_manifest.json` pins the pre-deletion commits (e59d4b04 / 72c05177) and
   downloads only weight files.
+- **Result (2026-10-07):**
+  - **CI:** build-worker-image run 37525029103 (commit e71aea4) succeeded.
+    - New image `docker.io/shivamgupta579/s2s-worker:e71aea422693` (= `:latest`), 23.47 GB, digest `sha256:501288cc…`.
+    - The build log's `fetched.json` lists exactly the 5 allowlisted files: 1,567 + 387,938,848 + 63,437,076 +
+      63,437,076 + 537,236 (wheel) = **515,351,803 B**. The HF cache held nothing else.
+    - `--check` gives `missing_required: []`, so all 5 md5s equal the manifest, which equals the live
+      `:3957130716eb` manifest.
+    - The offline Needle-lib step and the router v2 + N1 and session/role_prompt asserts passed in the image.
+  - **RunPod template `gymgxjcf93`:** `imageName` was PATCHed by REST `:3957130716eb` → `:e71aea422693`. Before/after
+    diff: only `imageName` changed (env identical).
+  - **Live check through the Space** (`deploy/tests/latency_probe.py --call --talk-s 5`, food_01 g1):
+    - ready 75.1 s after POST (cold start), handshake 7.5 s after ws open;
+    - 5 s of talk with model audio back, pipeline lag p50 514 ms, GPU step p95 52 ms (OK < 80 ms), close 1000;
+    - leg 2 (`/api/diag`) timed out, as before.
+  - **Cost:** balance $19.3078 → $19.2530 (**$0.055**: cold start + call + idle tail). Afterwards running = 0 and
+    spend $0/h; the health endpoint lists idle/standby workers, which are not billed.

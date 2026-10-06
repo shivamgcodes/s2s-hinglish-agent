@@ -37,6 +37,19 @@ worker start: fully offline. No HF token, no Model field, no network volume.
 > - **Worst case per day:** limited by the Space brakes. With `MAX_CALLS_PER_DAY=100` it is about $15; set it lower
 >   (for example 30) while testing.
 
+## UPDATE 2026-10-07 (D-MONOREPO-LAYOUT, D-SINGLE-SOURCE, D-TRAINING-CODE, D-ASSET-SWITCH, D-LEAN-HF)
+- **Image now: `docker.io/shivamgupta579/s2s-worker:e71aea422693`** (= `:latest`, monorepo commit e71aea4). Template
+  `gymgxjcf93` `imageName` was PATCHed by REST; nothing else changed. A live check through the Space passed
+  (food_01, ready 75 s, step p95 52 ms) for $0.055.
+- **Assets:** only the manifest's 5 pinned files (515,351,803 B) are fetched, from `shivamgupta/personaplex-hinglish-v4-lora`
+  @e59d4b04 and `shivamgupta/needle-hinglish-router-v2` @72c05177 plus the public needle3 wheel. They have the same
+  md5s as the previous image. `shivamgupta/s2s-v4-assets` is **unused but not deleted**; deleting it is your call.
+- **Repo layout:** `packages/` (shared code, pip-installable `needle_router` + `personaplex_lora`), `research/`
+  (training + data + eval harness), `deploy/` (everything that was at the root). See Appendix B.
+- **HF model repos:** they hold weights, configs, examples and the card only. The code files were deleted in one
+  commit per repo (router 03c3297d, LoRA 48bcbd11), and the cards were updated (b9bf3df7, e99c8066).
+- To roll back the image: PATCH `imageName` back to `docker.io/shivamgupta579/s2s-worker:3957130716eb`.
+
 ## UPDATE 2026-10-07 (D-MONOREPO)
 - **One repo:** everything is in the private repo `github.com/shivamgcodes/s2s-hinglish-agent`. `s2s-worker` and
   `s2s-space` are retired, but they still exist until you delete them. Appendix B has the new update flow.
