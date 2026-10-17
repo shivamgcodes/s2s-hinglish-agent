@@ -257,11 +257,11 @@ Since D-MONOREPO (2026-10-06), everything is in ONE private repo, `github.com/sh
 `s2s-worker` and `s2s-space` are retired.
 - **Layout since D-MONOREPO-LAYOUT (2026-10-07):** `packages/` (shared code, one copy), `research/` (code that built
   the models), `deploy/` (everything below: `ops/`, `worker/`, `space/`, ... are `deploy/ops/`, `deploy/worker/`, ...).
-  This development folder has the same top level.
-- **Code change in this folder:**
-  1. `bash deploy/ops/export_monorepo.sh <checkout of s2s-hinglish-agent>`. This runs `ops/scan_secrets.sh`: token shapes,
-     the real secret values incl. the passcode, forbidden files and files > 50 MB.
-  2. Commit + push the monorepo (only with your go-ahead).
+- **Code change (since D-REPO-ONLY, 2026-10-17): edit a clone of this repo directly.** There is no separate
+  development folder or export step any more (the laptop clone is `~/Desktop/S2S/s2s-hinglish-agent`).
+  1. `bash deploy/ops/scan_secrets.sh .` in the clone: token shapes, the real secret values incl. the passcode,
+     forbidden files and files > 50 MB.
+  2. Commit + push (only with your go-ahead).
   3. Worker: run the **build-worker-image** workflow in the monorepo (or push a `v*` tag), then set the new
      `:<sha12>` image on the RunPod endpoint (Manage → Edit endpoint → container image).
   3a. Router / LoRA code change (`packages/`): nothing to copy anywhere. The HF model repos hold no code (D-LEAN-HF);

@@ -385,6 +385,10 @@ class InjectPlan(dict):
     """{"first_frame","last_frame","n_frames","frames":[[frame, token_id, piece], ...]} (+ "requested_start_frame")."""
 
 
+def _to_i16(x):
+    return (np.clip(np.asarray(x, np.float32), -1, 1) * 32767).astype("<i2")
+
+
 def _stats(xs):
     if not xs:
         return {"last": None, "p50": None, "p95": None, "max": None, "n": 0}
@@ -482,6 +486,8 @@ class EngineBase:
         self.filler.reset(cfg.get("turn_fill"))
         self._rec_in, self._rec_agc, self._rec_out, self._rec_min = [], [], [], []
         self._rec_on = RECORD_ON
+        self._heard_in, self._heard_out = [], []   # S2S 2026-10-17: "what the model heard" download (always on, int16)
+        self.last_heard_wav = None
         self.cfg = dict(cfg)
         self.session_id = "s-" + time.strftime("%Y%m%dT%H%M%S") + "-" + uuid.uuid4().hex[:6]
         t0 = time.time()
@@ -500,6 +506,7 @@ class EngineBase:
     def end_session(self) -> dict:
         self.active = False
         self._dump_recording()
+        self.last_heard_wav = self._heard_wav()
         a = self.session_step_ms[25:] or self.session_step_ms
         b = self.session_lm_ms[25:] or self.session_lm_ms
 
@@ -516,6 +523,28 @@ class EngineBase:
                 "step_ms_excl_first25": st(a), "lm_step_ms_excl_first25": st(b),
                 "compute_rtf": round(float(np.sum(a)) / (len(a) * 80.0), 3) if a else None,
                 "vram": self.vram()}
+
+    def _heard_wav(self):
+        """S2S 2026-10-17: the session as the model saw it, on the server's frame clock: stereo 24 kHz int16 WAV,
+        L = model output (what was sent to the client), R = model input (after Opus decode, AGC, noise gate and the
+        turn filler). None when no frame ran. Never raises."""
+        try:
+            import io, wave
+            mi, mo = getattr(self, "_heard_in", None), getattr(self, "_heard_out", None)
+            if not mi or not mo:
+                return None
+            n = min(len(mi), len(mo))
+            st = np.stack([np.concatenate(mo[:n]), np.concatenate(mi[:n])], 1).reshape(-1)
+            b = io.BytesIO()
+            with wave.open(b, "wb") as f:
+                f.setnchannels(2); f.setsampwidth(2); f.setframerate(SAMPLE_RATE)
+                f.writeframes(st.astype("<i2").tobytes())
+            return b.getvalue()
+        except Exception as e:  # noqa: BLE001 - a debugging aid must never break a session
+            print("heard_wav failed:", e, flush=True)
+            return None
+        finally:
+            self._heard_in, self._heard_out = [], []
 
     # ---- per frame ----------------------------------------------------------------------------------
     def step_frame(self, pcm: np.ndarray) -> FrameOut:
@@ -547,6 +576,8 @@ class EngineBase:
                 fill_ev.append(("stop", "done"))
         if rec and hasattr(self, "_rec_min"):
             self._rec_min.append(pcm.copy())        # model input incl. filler (D-FILL2 recording)
+        if hasattr(self, "_heard_in"):
+            self._heard_in.append(_to_i16(pcm))     # exactly the model's input: after Opus decode, AGC, gate, filler
         with self._lock:
             f = self.frame
             pass_tok = self._sched.get(f + 1)          # forced on call f -> returned at frame f+1
@@ -600,6 +631,8 @@ class EngineBase:
                     pass
         if rec and hasattr(self, "_rec_out"):
             self._rec_out.append(np.asarray(out, np.float32).copy())
+        if hasattr(self, "_heard_out"):
+            self._heard_out.append(_to_i16(out))
         return FrameOut(frame=f, token=tok, piece=piece, pcm=out, pcm_model=pcm_model, forced=forced,
                         step_ms=step_ms, lm_step_ms=lm_ms)
 

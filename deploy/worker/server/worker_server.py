@@ -63,6 +63,26 @@ TOKEN_HEADER = "X-S2S-Token"
 TURN_FILL_MODES = ("ticker", "off")
 KIND_CONTROL = 8      # S2S 2026-10-06: client(Space)->worker JSON control frame b"\x08"+{"type":"turn_fill","mode":...}
 REPLAY_MAX = 1024
+TIMING_WINDOW = 500   # S2S 2026-10-17: last N frames in the per-frame timing stats (metrics event "timing")
+
+
+def _ping_id(payload):
+    """S2S 2026-10-17: id of a kind-0x08 {"type":"ping","id":n} control frame, else None."""
+    try:
+        m = json.loads(bytes(payload).decode("utf-8"))
+    except Exception:
+        return None
+    if isinstance(m, dict) and m.get("type") == "ping" and isinstance(m.get("id"), int):
+        return m["id"]
+    return None
+
+
+def _stats(xs):
+    if not xs:
+        return {"p50": None, "p95": None, "max": None, "n": 0}
+    a = np.fromiter(xs, float)
+    return {"p50": round(float(np.percentile(a, 50)), 2), "p95": round(float(np.percentile(a, 95)), 2),
+            "max": round(float(a.max()), 2), "n": int(len(a))}
 
 
 def _env_int(name, default):
@@ -199,6 +219,7 @@ class Server:
         self.lock = asyncio.Lock()
         self.loop = None
         self.backlog = {"last_frames": 0, "max_frames": 0}
+        self.heard = None           # S2S 2026-10-17: {"sid", "wav"} of the last finished call (GET /session/heard)
         # ---- S2S serverless state
         self.mode = os.environ.get("S2S_MODE", "lb")
         self.secret = os.environ.get("S2S_SESSION_SECRET", "")
@@ -434,6 +455,17 @@ class Server:
             log.info("claim sid %s refused: %s %s", p["sid"], st, body)
         return web.json_response(body, status=st)
 
+    async def handle_heard(self, request):
+        """S2S 2026-10-17: GET /session/heard (token for the sid) -> the last call's stereo WAV as the model saw it
+        (L = model output, R = model input after decode/AGC/gate/filler). 404 if this worker has no such call."""
+        p, err = self._verify(request.headers.get(TOKEN_HEADER) or request.query.get("token"))
+        if err is not None:
+            return err
+        h = self.heard
+        if not h or h.get("sid") != p["sid"] or not h.get("wav"):
+            return web.json_response({"error": "not_found"}, status=404)
+        return web.Response(body=h["wav"], content_type="audio/wav")
+
     async def handle_release(self, request):
         p, err = self._verify(request.headers.get(TOKEN_HEADER) or request.query.get("token"))  # CRIT-3
         if err is not None:
@@ -564,6 +596,12 @@ class Server:
             opus_reader = sphn.OpusStreamReader(SAMPLE_RATE)
             out_q = asyncio.Queue()
             handshake_sent = False
+            # S2S 2026-10-17 timing (durations on this machine's clock only, perf_counter): for each frame,
+            # in_wait = Opus page received -> its last sample decoded and read; queue = read -> step start (backlog);
+            # step = step wall incl. executor hop; out_wait = step end -> its Opus bytes sent; residence = read -> sent.
+            tm = {"t_last_in": None, "pending": collections.deque(),
+                  **{k: collections.deque(maxlen=TIMING_WINDOW) for k in ("in_wait", "queue", "step", "out_wait",
+                                                                          "residence")}}
 
             async def recv_loop():
                 try:
@@ -578,9 +616,14 @@ class Server:
                             continue
                         if data[0] == 1:
                             if handshake_sent:          # stock drops client messages during the prompt phase
+                                tm["t_last_in"] = time.perf_counter()
                                 opus_reader.append_bytes(data[1:])
                         elif data[0] == KIND_CONTROL:    # S2S: in-band control from the Space (turn-filler toggle)
-                            self._control(eng, data[1:], sid_s2s)
+                            ping = _ping_id(data[1:])
+                            if ping is not None:        # S2S 2026-10-17 timing: echo on the audio stream's queue
+                                out_q.put_nowait(("pong", ping, time.perf_counter()))
+                            else:
+                                self._control(eng, data[1:], sid_s2s)
                         else:
                             log.warning("unknown message kind %d", data[0])
                 finally:
@@ -627,11 +670,19 @@ class Server:
                     if pcm.shape[-1] == 0:
                         await asyncio.sleep(0.002)
                         continue
+                    t_read = time.perf_counter()
+                    if tm["t_last_in"] is not None:
+                        tm["in_wait"].append((t_read - tm["t_last_in"]) * 1000)
                     buf = np.concatenate([buf, pcm.astype(np.float32).reshape(-1)])
                     while len(buf) >= FRAME_SIZE and not is_closed():
                         chunk, buf = buf[:FRAME_SIZE], buf[FRAME_SIZE:]
+                        t_s = time.perf_counter()
                         out = await self.gpu_call(eng.step_frame, chunk)
                         opus_writer.append_pcm(out.pcm)
+                        t_e = time.perf_counter()
+                        tm["queue"].append((t_s - t_read) * 1000)
+                        tm["step"].append((t_e - t_s) * 1000)
+                        tm["pending"].append((t_read, t_e))
                         if out.piece is not None:
                             out_q.put_nowait(b"\x02" + out.piece.encode("utf-8"))
                             self.hub.publish({"type": "text", "frame": out.frame, "t": round(out.frame / FRAME_RATE, 3),
@@ -648,10 +699,19 @@ class Server:
                     msg = opus_writer.read_bytes()
                     if len(msg) > 0:
                         await ws.send_bytes(b"\x01" + msg)
+                        t = time.perf_counter()
+                        pend = tm["pending"]
+                        while pend and pend[0][1] <= t:      # frames whose step ended before these bytes were read
+                            t_read, t_e = pend.popleft()
+                            tm["out_wait"].append((t - t_e) * 1000)
+                            tm["residence"].append((t - t_read) * 1000)
                     while not out_q.empty():
                         item = out_q.get_nowait()
                         if item is None:        # sentinel queued after session_end: everything is flushed
                             return
+                        if isinstance(item, tuple):         # ("pong", id, t_recv): hold = recv -> this send
+                            item = b"\x07" + json.dumps({"type": "pong", "id": item[1], "hold_ms": round(
+                                (time.perf_counter() - item[2]) * 1000, 2)}).encode()
                         await ws.send_bytes(item)
                     await asyncio.sleep(0.001)
 
@@ -663,6 +723,7 @@ class Server:
                     self.last_step_p95 = (m.get("step_ms") or {}).get("p95")
                     m = dict(m)
                     m["type"] = "metrics"
+                    m["timing"] = {k: _stats(tm[k]) for k in ("in_wait", "queue", "step", "out_wait", "residence")}
                     self.hub.publish(m)
 
             self.backlog["last_frames"] = 0
@@ -681,6 +742,8 @@ class Server:
                 stop("client_closed")                # no-op if a reason is already set
                 end_reason = get_reason()
                 summary = await self.gpu_call(eng.end_session)
+                self.heard = {"sid": sid_s2s, "wav": getattr(eng, "last_heard_wav", None)}
+                summary["timing"] = {k: _stats(tm[k]) for k in ("in_wait", "queue", "step", "out_wait", "residence")}
                 self.hub.publish({"type": "session_end", "reason": end_reason, "frames": summary["frames"]})
                 out_q.put_nowait(None)
                 try:
@@ -873,6 +936,7 @@ class Server:
         app.router.add_get("/status", self.handle_public_status)
         app.router.add_post("/session/claim", self.handle_claim)
         app.router.add_post("/session/release", self.handle_release)
+        app.router.add_get("/session/heard", self.handle_heard)                      # S2S 2026-10-17
         app.router.add_get("/api/chat", self.handle_chat)
         app.router.add_get("/metrics", self.handle_public_metrics)
         return app

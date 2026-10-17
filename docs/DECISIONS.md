@@ -1228,3 +1228,43 @@ RunPod or the HF Space.
     - leg 2 (`/api/diag`) timed out, as before.
   - **Cost:** balance $19.3078 → $19.2530 (**$0.055**: cold start + call + idle tail). Afterwards running = 0 and
     spend $0/h; the health endpoint lists idle/standby workers, which are not billed.
+
+## D-TIMING 2026-10-17 (user-approved: split the 0.86 s pipeline lag; "what the model heard" download)
+**Finding (before any code change):** sphn's Opus writer and reader run in background threads, so `read_bytes()` right
+after `append_pcm()` (and `read_pcm()` right after `append_bytes()`) return the PREVIOUS frame's data.
+`tests/rt_common.stream_call` did exactly that, so every `pipeline_lag_ms` it reported (incl. golive T5 856 ms from
+India and T6 513 ms from pod1) carries **~245 ms of client-side measurement delay**: a zero-network loopback of the old
+probe against a worker-like server reads 244.6 ms p50; polling both codecs every 1 ms reads 6.5 ms. The worker's own
+loops already poll (2 ms / 1 ms), so the live audio path is not affected. Browser codecs are a separate question.
+**Changes:**
+- Probe (`tests/rt_common.py`, `tests/latency_probe.py`): polled codecs (default; `--legacy-codec` = old method),
+  poller starts after the handshake (sphn emits Ogg headers before the first append; losing them breaks the worker's
+  reader). Leg 2 no longer uses `/api/diag` (it timed out on every call); the probe prints `breakdown_p50_ms`.
+- Worker (`worker/server/worker_server.py`): per-frame durations on its own clock in every `metrics` event and the
+  session summary (`timing`: in_wait, queue, step, out_wait, residence); kind-0x08 `{"type":"ping","id"}` is answered
+  with a 0x07 `pong` (+ `hold_ms`) through the audio send queue. `GET /session/heard` (token) serves the last call's
+  WAV.
+- Engine (`worker/server/core.py`): always keeps the session's model input (after decode, AGC, gate, filler) and output
+  as int16 in memory; `end_session` packs them into a stereo 24 kHz WAV (L = output, R = input).
+- Space (`space/app/main.py`, `upstream.py`): in-band ping every 2 s after the handshake; pongs consumed (not forwarded);
+  `relay_timing` 0x07 event every 2 s, written by the up->down pump itself (single writer to the browser socket)
+  (fwd_up, fwd_down, sw_rtt, sw_net); after each call fetches the heard WAV from
+  the worker (404 retried 10 x 0.5 s), keeps it 15 min (max 8), serves `GET /api/heard?sid=`.
+- Client: "Download what the model heard (.wav)" link after the call.
+**Local verification (Mac, CPU mock worker + fake LB + Space):** polled probe 7.2 ms p50, parts sum to within 1 ms
+(residual 1.0 ms); legacy probe 246 ms on the same stack. test_mock_e2e 24/24 (5 new checks), test_fake_runpod 26/26,
+test_crit_token_query 11/11, test_space_flows 111/111, test_worker_mock 53/53 (run from a scratch copy whose stack.sh
+replaces `wait -n`, which macOS bash 3.2 lacks). test_fixes / test_router_v2 skipped (pod-only inputs). Client builds.
+**Not yet done:** export + push, image build, endpoint image PATCH, Space push, live probe (all need the user's go-ahead
+and credentials not on this Mac: HF write token, GitHub access).
+**Open (user):** the heard capture is always on and the WAV is downloadable by sid (no passcode) for 15 min; serverless
+had recording OFF by default (S2S_RECORD_SESSIONS). Decide: keep, env flag, or only when the page asks.
+
+## D-REPO-ONLY 2026-10-17 (user: "clone the repo ... just remove the code from here, it should exist only in the repo")
+- The repo is the only copy of the code. The laptop development folder `hinglish/deploy_serverless/` and the export step
+  are retired: `deploy/ops/export_monorepo.sh` is deleted; edit a clone directly (laptop: `~/Desktop/S2S/s2s-hinglish-agent`).
+  `deploy/ops/monorepo/ATTRIBUTION.md` (a second copy of the root ATTRIBUTION.md) is deleted.
+- What stays outside the repo (not code): raw results, built assets, venvs, local env files.
+- `deploy/ops/scan_secrets.sh` now works on macOS (BSD `du` has no `--exclude`; `wc -l` pads with spaces, which made
+  the real-secret check report a problem with 0 hits). Before this fix the scan aborted silently on a Mac.
+- Run it by hand before each push: there is no secret-scan step in CI (`.github/workflows` has only build-worker.yml).

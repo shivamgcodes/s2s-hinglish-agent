@@ -13,7 +13,7 @@ set -euo pipefail
 [ $# -ge 1 ] || { echo "usage: scan_secrets.sh DIR [DIR...]" >&2; exit 2; }
 bad=0
 for R in "$@"; do
-  n=$(find "$R" -type f ! -path '*/.git/*' ! -path '*/node_modules/*' | wc -l); sz=$(du -sh --exclude=.git --exclude=node_modules "$R" | cut -f1)
+  n=$(find "$R" -type f ! -path '*/.git/*' ! -path '*/node_modules/*' | wc -l); sz=$( (du -sh --exclude=.git --exclude=node_modules "$R" 2>/dev/null || du -sh -I .git -I node_modules "$R") | cut -f1)  # GNU / macOS du
   echo "$R: $n files, $sz"
   big=$(find "$R" -type f ! -path '*/.git/*' ! -path '*/node_modules/*' -size +50M)
   [ -z "$big" ] || { echo "  FILES > 50 MB (GitHub warns at 50, rejects at 100): $big"; bad=1; }
@@ -48,7 +48,7 @@ PATS=$(mktemp); chmod 600 "$PATS"; trap 'rm -f "$PATS"' EXIT
 [ -f "$HOME/.config/s2s/secrets.env" ] && sed -n 's/^S2S_PASSCODE=//p' "$HOME/.config/s2s/secrets.env" | tr -d '"'"'"' \r' | grep -E '.{4,}' >> "$PATS" || true
 if [ -s "$PATS" ]; then
   for R in "$@"; do
-    n=$( (grep -rlF --exclude-dir=.git --exclude-dir=node_modules -f "$PATS" "$R" || true) | wc -l)
+    n=$( (grep -rlF --exclude-dir=.git --exclude-dir=node_modules -f "$PATS" "$R" || true) | wc -l | tr -d ' ')
     [ "$n" = 0 ] || { echo "  $R: $n FILE(S) CONTAIN A REAL SECRET VALUE"; bad=1; }
   done
   echo "real-secret scan: $(wc -l < "$PATS") value(s) checked"

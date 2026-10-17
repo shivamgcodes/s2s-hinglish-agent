@@ -23,6 +23,7 @@
 The browser only ever talks to this app (DESIGN section 0.4): the RunPod key and the session tokens stay here.
 """
 import asyncio
+import collections
 import json
 import logging
 import os
@@ -74,6 +75,18 @@ PLACEHOLDER = """<!doctype html><html><head><meta charset="utf-8"><title>S2S Spa
 CHAT_DROP_PARAMS = ("sid", "token", "turn_fill")
 TURN_FILL_MODES = ("ticker", "off")
 KIND_CONTROL = b"\x08"
+HEARD_KEEP_S = 900          # S2S 2026-10-17: "what the model heard" WAVs kept in memory this long ...
+HEARD_MAX = 8               # ... and at most this many (each <= ~21 MB for a 222 s call)
+PING_EVERY_S = 2.0          # S2S 2026-10-17 timing: Space -> worker in-band ping period during a call
+TIMING_WINDOW = 500
+
+
+def _tstats(xs):
+    xs = sorted(xs)
+    if not xs:
+        return {"p50": None, "p95": None, "max": None, "n": 0}
+    pick = lambda q: round(xs[min(len(xs) - 1, int(q * (len(xs) - 1) + 0.5))], 2)  # noqa: E731
+    return {"p50": pick(0.5), "p95": pick(0.95), "max": round(xs[-1], 2), "n": len(xs)}
 WORKER_REFUSALS = {4401: "auth", 4409: "busy", 4503: "loading"}   # DESIGN 3.1 close codes             # never forwarded upstream (the token goes in a header)
 
 
@@ -141,6 +154,7 @@ class SpaceApp:
         self.bg = set()
         self.problems = cfg.problems()
         self.turn_fill = cfg.turn_fill_default if cfg.turn_fill_default in TURN_FILL_MODES else "ticker"
+        self.heard = {}             # S2S 2026-10-17: sid -> asyncio.Future[bytes | None] ("what the model heard")
 
     # ------------------------------------------------------------------------------------------- lifecycle
     async def on_startup(self, app):
@@ -355,19 +369,48 @@ class SpaceApp:
                 sess.set("ended", "relay error")
             if not clean:
                 self.spawn(self.up.release(sess))
+            self._start_heard(sess)
 
     async def _relay(self, sess, down, up, t0) -> bool:
         """Pump frames both ways until either side ends or the Space cap fires. Returns True when the worker ended
         the call itself (session_end) or saw the browser leave (client_closed), i.e. no release is needed."""
         state = {"end": None}
+        # S2S 2026-10-17 timing (perf_counter durations on the Space's clock only): fwd_up / fwd_down = message read
+        # from one socket -> written to the other (relay cost incl. backpressure); sw_rtt = in-band ping round trip
+        # Space -> RunPod LB -> worker -> back; sw_net = sw_rtt minus the worker's hold (pong queue -> send).
+        tmg = {k: collections.deque(maxlen=TIMING_WINDOW) for k in ("fwd_up", "fwd_down", "sw_rtt", "sw_net")}
+        pings = {}
+        handshake = asyncio.Event()
+        last_ev = [time.perf_counter()]
+
+        def timing_event():
+            return {"type": "relay_timing", "source": "space", **{k: _tstats(v) for k, v in tmg.items()}}
 
         async def up2down():
             async for m in up:
                 if m.type == WSMsgType.BINARY:
+                    t_in = time.perf_counter()
                     d = m.data
+                    if d[:1] == b"\x00":
+                        handshake.set()                  # pings start after the prompt phase
                     if d[:1] == b"\x07":
+                        if b'"pong"' in d[:40]:
+                            try:
+                                ev = json.loads(d[1:].decode("utf-8"))
+                            except Exception:
+                                ev = {}
+                            if ev.get("type") == "pong" and ev.get("id") in pings:
+                                rtt = (t_in - pings.pop(ev["id"])) * 1000
+                                tmg["sw_rtt"].append(rtt)
+                                tmg["sw_net"].append(rtt - float(ev.get("hold_ms") or 0))
+                                continue                     # consumed here, never forwarded to the browser
                         self._peek(sess, d, state)
                     await down.send_bytes(d)
+                    if d[:1] == b"\x01":
+                        tmg["fwd_down"].append((time.perf_counter() - t_in) * 1000)
+                        if handshake.is_set() and t_in - last_ev[0] >= PING_EVERY_S:
+                            last_ev[0] = t_in             # this task is the only writer to `down` during the call
+                            await down.send_bytes(ev_frame(timing_event()))
                 elif m.type == WSMsgType.TEXT:
                     await down.send_str(m.data)
                 else:
@@ -378,8 +421,11 @@ class SpaceApp:
         async def down2up():
             async for m in down:
                 if m.type == WSMsgType.BINARY:
+                    t_in = time.perf_counter()
                     async with up_lock:
                         await up.send_bytes(m.data)
+                    if m.data[:1] == b"\x01":
+                        tmg["fwd_up"].append((time.perf_counter() - t_in) * 1000)
                 elif m.type == WSMsgType.TEXT:
                     async with up_lock:
                         await up.send_str(m.data)
@@ -393,9 +439,24 @@ class SpaceApp:
                 await up.send_bytes(data)
         sess.send_control = send_control
 
+        async def pinger():
+            i = 0
+            await handshake.wait()
+            while not up.closed and not down.closed:
+                await asyncio.sleep(PING_EVERY_S)
+                i += 1
+                pings[i] = time.perf_counter()
+                for k in [k for k in pings if k < i - 30]:
+                    del pings[k]                         # lost pongs (e.g. during the prompt phase backlog)
+                try:
+                    await send_control(KIND_CONTROL + json.dumps({"type": "ping", "id": i}).encode())
+                except Exception:
+                    return
+
         t_up = asyncio.ensure_future(up2down())
         t_down = asyncio.ensure_future(down2up())
         t_ka = self.spawn(self.up.keepalive_loop(sess))
+        t_ping = self.spawn(pinger())
         closing = asyncio.Event()
 
         async def relay_close():
@@ -426,7 +487,7 @@ class SpaceApp:
                 log.warning("sid %s: Space call cap %d s reached; closing", sess.sid, cap)
             sess.end_reason = reason
             sess.set("ended", detail)
-            for t in (t_up, t_down, t_close, t_ka):
+            for t in (t_up, t_down, t_close, t_ka, t_ping):
                 t.cancel()
             if not up.closed:
                 await up.close()
@@ -436,8 +497,10 @@ class SpaceApp:
                 else:
                     await down.close(code=code)
         finally:
-            for t in (t_up, t_down, t_close, t_ka):
+            for t in (t_up, t_down, t_close, t_ka, t_ping):
                 t.cancel()
+            sess.relay_timing = timing_event()
+            log.info("sid %s: relay timing %s", sess.sid, json.dumps(sess.relay_timing))
             sess.relay_close = None
             sess.send_control = None
             if not up.closed:
@@ -448,6 +511,45 @@ class SpaceApp:
             log.info("sid %s: call ended (%s) after %.1f s; keepalive %s", sess.sid, sess.end_reason,
                      time.time() - (sess.call_started or t0), dict(sess.keepalive["codes"]))
         return bool(state["end"]) or sess.end_reason == "client_closed"
+
+    def _start_heard(self, sess):
+        """S2S 2026-10-17: fetch the worker's "what the model heard" WAV right after the call and keep it HEARD_KEEP_S
+        for GET /api/heard?sid=. Independent of the release: the worker keeps the WAV until its next call ends."""
+        fut = asyncio.get_running_loop().create_future()
+        self.heard[sess.sid] = fut
+
+        async def run():
+            wav = None
+            try:
+                wav = await self.up.fetch_heard(sess)
+            except Exception as e:  # noqa: BLE001 - optional download, never fatal
+                log.warning("sid %s: heard fetch failed: %r", sess.sid, e)
+            finally:
+                if not fut.done():
+                    fut.set_result(wav)
+            log.info("sid %s: heard wav %s", sess.sid, f"{len(wav)} B" if wav else "unavailable")
+            await asyncio.sleep(HEARD_KEEP_S)
+            if self.heard.get(sess.sid) is fut:
+                del self.heard[sess.sid]
+        self.spawn(run())
+        while len(self.heard) > HEARD_MAX:       # oldest first (dicts keep insertion order)
+            self.heard.pop(next(iter(self.heard)))
+
+    async def handle_heard(self, request):
+        """GET /api/heard?sid= -> stereo WAV, L = model output, R = model input (what the model heard: after Opus
+        decode, AGC, noise gate, turn filler), on the worker's frame clock. Waits for the fetch (up to 60 s)."""
+        sid = request.query.get("sid") or ""
+        fut = self.heard.get(sid)
+        if fut is None:
+            return web.json_response({"error": "not_found", "detail": "no finished call with this sid"}, status=404)
+        try:
+            wav = await asyncio.wait_for(asyncio.shield(fut), timeout=60)
+        except asyncio.TimeoutError:
+            return web.json_response({"error": "not_ready"}, status=503)
+        if not wav:
+            return web.json_response({"error": "unavailable"}, status=404)
+        return web.Response(body=wav, content_type="audio/wav",
+                            headers={"Content-Disposition": f'attachment; filename="model_heard_{sid[:12]}.wav"'})
 
     @staticmethod
     def _peek(sess, d: bytes, state: dict):
@@ -659,6 +761,7 @@ class SpaceApp:
         r.add_get("/metrics", self.handle_metrics)
         r.add_get("/api/diag", self.handle_diag)
         r.add_get("/ws-echo", self.handle_echo)
+        r.add_get("/api/heard", self.handle_heard)
         r.add_get("/api/selftest/outbound", self.handle_selftest)
         r.add_get("/api/filler", self.handle_filler)
         r.add_get("/api/endpoint_health", self.handle_endpoint_health)

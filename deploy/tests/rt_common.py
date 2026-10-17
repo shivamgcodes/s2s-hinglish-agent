@@ -421,8 +421,13 @@ def pct(xs, p):
 
 
 async def stream_call(cs, url, headers, pcm, tag, ssl_=None, open_timeout=60.0, on_tick=None, tick_s=10.0,
-                      on_event=None):
+                      on_event=None, legacy_codec=False):
     """Open the websocket, stream `pcm` in real time (80 ms frames, Opus via sphn), record everything.
+
+    S2S 2026-10-17: sphn's Opus writer and reader work in the background, so reading them right after
+    append_pcm / append_bytes returns the PREVIOUS frame's data. The old code did exactly that and added ~245 ms to
+    pipeline_lag (measured on a zero-network loopback). Now a 1 ms poller sends encoded bytes and reads decoded PCM
+    as soon as they exist; legacy_codec=True restores the old behaviour for comparison with the 2026-10-06 numbers.
 
     Returns a dict: open/handshake times, frames sent/received, receive gaps, per-frame pipeline lag
     (send time of user frame k -> arrival of the k-th model frame's worth of decoded audio), 0x07 events
@@ -465,12 +470,13 @@ async def stream_call(cs, url, headers, pcm, tag, ssl_=None, open_timeout=60.0, 
                     gaps.append((t - last_audio[0]) * 1000)
                 last_audio[0] = t
                 reader.append_bytes(d[1:])
-                p = reader.read_pcm()
-                st["model_samples"] += int(p.shape[-1])
-                while (k_done + 1) * FS <= st["model_samples"]:
-                    if k_done < len(send_t):
-                        lag.append((t - send_t[k_done]) * 1000)
-                    k_done += 1
+                if legacy_codec:
+                    p = reader.read_pcm()
+                    st["model_samples"] += int(p.shape[-1])
+                    while (k_done + 1) * FS <= st["model_samples"]:
+                        if k_done < len(send_t):
+                            lag.append((t - send_t[k_done]) * 1000)
+                        k_done += 1
             elif k == 2:
                 st["n_text"] += 1
             elif k == 7:
@@ -489,11 +495,36 @@ async def stream_call(cs, url, headers, pcm, tag, ssl_=None, open_timeout=60.0, 
                         st["step_p95_seen"].append(p95)
                 elif ty == "session_end":
                     st["session_end"] = {"reason": ev.get("reason"), "frames": ev.get("frames"), "t": round(t, 3)}
+                elif ty == "relay_timing":
+                    st["relay_timing_last"] = ev
         st["close_code"] = ws.close_code
         if not hs.done():
             hs.set_result(False)
 
+    async def codec_poll():
+        """Non-legacy: send encoded bytes and read decoded PCM as soon as sphn's background threads have them."""
+        k_done = 0
+        while True:
+            b = writer.read_bytes()
+            if len(b) and not ws.closed:
+                try:
+                    await ws.send_bytes(b"\x01" + b)
+                    st["bytes_out"] += len(b) + 1
+                except Exception as e:
+                    st["send_error"] = repr(e)
+            p = reader.read_pcm()
+            if p is not None and p.shape[-1]:
+                t = now()
+                st["model_samples"] += int(p.shape[-1])
+                while (k_done + 1) * FS <= st["model_samples"]:
+                    if k_done < len(send_t):
+                        lag.append((t - send_t[k_done]) * 1000)
+                    k_done += 1
+            await asyncio.sleep(0.001)
+
     rt = asyncio.create_task(recv())
+    cp = None    # started after the handshake: the worker drops audio sent during the prompt phase, and sphn's writer
+    #              emits its Ogg header pages before the first append_pcm (losing them breaks the worker's reader)
     try:
         ok = await asyncio.wait_for(hs, timeout=180)
     except asyncio.TimeoutError:
@@ -504,6 +535,8 @@ async def stream_call(cs, url, headers, pcm, tag, ssl_=None, open_timeout=60.0, 
         st["error"] = "no handshake"
         return st
     log(tag, f"handshake {st['t_handshake'] - st['t_open']:.2f} s after open; streaming {len(pcm) / SR:.0f} s")
+    if not legacy_codec:
+        cp = asyncio.create_task(codec_poll())
     t0 = time.perf_counter()
     t_tick = now()
     for i in range(len(pcm) // FS):
@@ -516,15 +549,18 @@ async def stream_call(cs, url, headers, pcm, tag, ssl_=None, open_timeout=60.0, 
         if st["session_end"] is not None or ws.closed:
             break
         writer.append_pcm(pcm[i * FS:(i + 1) * FS])
-        b = writer.read_bytes()
-        send_t.append(now())
-        if len(b):
-            try:
-                await ws.send_bytes(b"\x01" + b)
-            except Exception as e:
-                st["send_error"] = repr(e)
-                break
-            st["bytes_out"] += len(b) + 1
+        send_t.append(now())                   # frame i is complete (all its samples exist) now
+        if legacy_codec:
+            b = writer.read_bytes()
+            if len(b):
+                try:
+                    await ws.send_bytes(b"\x01" + b)
+                except Exception as e:
+                    st["send_error"] = repr(e)
+                    break
+                st["bytes_out"] += len(b) + 1
+        elif st.get("send_error"):
+            break
         st["frames_sent"] = i + 1
         if on_tick is not None and now() - t_tick >= tick_s:
             t_tick = now()
@@ -537,12 +573,14 @@ async def stream_call(cs, url, headers, pcm, tag, ssl_=None, open_timeout=60.0, 
         await asyncio.wait_for(rt, timeout=5)
     except Exception:
         pass
+    if cp is not None:
+        cp.cancel()
     st["close_code"] = ws.close_code
     st["recv_gap_ms"] = {"p50": pct(gaps, 50), "p95": pct(gaps, 95), "p99": pct(gaps, 99),
                          "max": round(max(gaps), 1) if gaps else None, "n_over_500": sum(g > 500 for g in gaps),
                          "n_over_1000": sum(g > 1000 for g in gaps)}
     st["pipeline_lag_ms"] = {"p50": pct(lag, 50), "p95": pct(lag, 95), "min": round(min(lag), 1) if lag else None,
-                             "n": len(lag)}
+                             "n": len(lag), "method": "legacy (read right after append)" if legacy_codec else "polled"}
     st["model_s"] = round(st["model_samples"] / SR, 2)
     st["user_s"] = round(st["frames_sent"] * FS / SR, 2)
     if st["step_p95_seen"]:

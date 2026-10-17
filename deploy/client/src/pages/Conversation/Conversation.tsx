@@ -356,6 +356,7 @@ export const Conversation:FC<ConversationProps> = ({
                 <div className="flex justify-around text-[11px] text-gray-500"><span>agent</span><span>you (customer)</span><span title="The turn filler: a soft 1 s ticker fed to the model's input when the agent pauses, so it yields the turn. You never hear it.">ticker (model only){ev.nFills ? ` · ${ev.nFills}×` : ""}</span></div>
                 <div className="text-sm flex justify-center items-center flex-col">
                   {audioURL && <a href={audioURL} download={`dep1_${dep1?.recordId ?? "stock"}_audio.${getExtension("audio")}`} className="pt-1 text-center block text-blue-700 underline">Download stereo recording</a>}
+                  {isOver && sid && <a href={`/api/heard?sid=${encodeURIComponent(sid)}`} download={`model_heard_${dep1?.recordId ?? "stock"}.wav`} title="Server side, on the model's own frame clock. Left: what the model said. Right: exactly what the model heard (your mic after Opus, AGC, the noise gate and the turn-filler ticker). Ready a few seconds after the call ends." className="pt-1 text-center block text-blue-700 underline">Download what the model heard (.wav)</a>}
                 </div>
                 <div className="hidden md:block">
                   <ServerAudioStats getAudioStats={getAudioStats} />

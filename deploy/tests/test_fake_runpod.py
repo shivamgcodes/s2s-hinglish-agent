@@ -230,11 +230,13 @@ async def space_stage(a, B, procs, logf):
     rc_, out, err = run_space_script("latency_probe.py", ["--call", "--talk-s", "13", "--n", "3"], port)
     try:
         j = json.loads(out[out.index("\n{\n") + 1:])
+        # 2026-10-17: leg 2 comes from the Space's in-band ping now (the stub worker does not answer pings, so only
+        # the structure is checked here; test_mock_e2e checks real pongs against the mock worker).
         ok = (j["leg1_browser_to_space"]["ws_echo_rtt_ms"]["n_ok"] == 12 and j["leg3_full_path"]["pipeline_lag_ms"]["n"] > 50
-              and any(d.get("space_to_worker_ms") is not None for d in j["leg2_space_to_worker"]["samples"]))
+              and "net_ms" in j["leg2_space_to_worker"] and "pipeline_lag" in j["breakdown_p50_ms"])
     except Exception as ex:
         ok, j = False, repr(ex)
-    check("latency_probe via Space: legs 1-3 measured (diag through the Space)", ok, (str(j)[:600], err[-300:]))
+    check("latency_probe via Space: legs 1-3 measured + breakdown", ok, (str(j)[:600], err[-300:]))
 
 
 async def amain(a):

@@ -148,6 +148,7 @@ async def space_call(space_url, talk_s, tag, during=None):
         stop.set()
         await poller
         await tgt.finish()
+    st["_sid"] = tgt.sid
     pre = [ph["phase"].split(":")[0] for ph in tgt.phases.items]          # states seen during prepare()
     return st, pre + [s[0] for s in seen], final, side.get("result")
 
@@ -186,6 +187,31 @@ async def lb_suite(a, b, procs, space_url):
     want = ["waking", "ready", "in_call", "ended"]
     check("lb: state sequence waking -> ready -> in_call -> ended", dedup([s for s in states if s in want]) == want, states)
     check("lb: second session while the call runs -> busy", second and "busy" in second, second)
+    # 2026-10-17 latency split + "what the model heard"
+    rt_ev = st.get("relay_timing_last") or {}
+    check("lb: Space relay_timing event with in-band ping pongs (Space <-> worker)",
+          (rt_ev.get("sw_net") or {}).get("n", 0) >= 1 and (rt_ev.get("fwd_up") or {}).get("n", 0) > 10, rt_ev)
+    tmg = (st.get("metrics_last") or {}).get("timing") or {}
+    check("lb: worker metrics carry per-frame timing (residence / step / queue)",
+          (tmg.get("residence") or {}).get("n", 0) > 10, tmg)
+    check("lb: probe pipeline lag (polled codec) is a few ms on loopback",
+          (st.get("pipeline_lag_ms") or {}).get("p50") is not None and st["pipeline_lag_ms"]["p50"] < 60,
+          st.get("pipeline_lag_ms"))
+    async with aiohttp.ClientSession() as cs:
+        async with cs.get(f"{space_url}/api/heard", params={"sid": st["_sid"]}) as r:
+            body = await r.read()
+            hdr = (r.status, r.headers.get("Content-Type"))
+    import io as _io, wave as _wave
+    try:
+        with _wave.open(_io.BytesIO(body)) as w:
+            winfo = (w.getnchannels(), w.getframerate(), w.getnframes() / w.getframerate())
+    except Exception as e:
+        winfo = repr(e)
+    check("lb: GET /api/heard -> stereo 24 kHz WAV covering the call", hdr == (200, "audio/wav")
+          and isinstance(winfo, tuple) and winfo[0] == 2 and winfo[1] == 24000 and winfo[2] > 8, (hdr, winfo))
+    async with aiohttp.ClientSession() as cs:
+        async with cs.get(f"{space_url}/api/heard", params={"sid": "no-such-sid"}) as r:
+            check("lb: GET /api/heard unknown sid -> 404", r.status == 404, r.status)
 
     # token refusals directly at the worker (LB proxy not involved)
     sid = s2s_token.new_sid()

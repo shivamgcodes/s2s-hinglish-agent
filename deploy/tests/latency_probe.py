@@ -108,22 +108,16 @@ async def call_legs(a, cs):
     r["worker_id"] = tgt.worker_id
     url, hdrs = tgt.ws_args()
     diags = []
-
-    async def diag_loop():
-        while True:
-            try:
-                st, j = await tgt.diag()
-                diags.append({"status": st, **(j if isinstance(j, dict) else {})})
-            except Exception as e:
-                diags.append({"error": repr(e)})
-            await asyncio.sleep(11)          # Space limit: 1 per 10 s per sid
-
-    dt = asyncio.create_task(diag_loop())
-    st = await rc.stream_call(cs, url, hdrs, rc.tone_track(a.talk_s), "probe", ssl_=rc.ssl_ctx(a))
-    dt.cancel()
+    # S2S 2026-10-17: the old leg-2 GET /api/diag timed out on every call (plain HTTP queues behind the open
+    # websocket at the RunPod LB). Leg 2 now comes from the Space's in-band ping (relay_timing events).
+    st = await rc.stream_call(cs, url, hdrs, rc.tone_track(a.talk_s), "probe", ssl_=rc.ssl_ctx(a),
+                              legacy_codec=a.legacy_codec)
     r["finish"] = await tgt.finish()
-    ms = [d.get("space_to_worker_ms") for d in diags if d.get("space_to_worker_ms") is not None]
-    r["leg2_space_to_worker"] = {"p50": rc.pct(ms, 50), "min": min(ms) if ms else None, "samples": diags}
+    rt = st.get("relay_timing_last") or {}
+    r["leg2_space_to_worker"] = {"net_ms": rt.get("sw_net"), "rtt_ms": rt.get("sw_rtt"),
+                                 "space_fwd_up_ms": rt.get("fwd_up"), "space_fwd_down_ms": rt.get("fwd_down"),
+                                 "source": "Space in-band ping" if rt else "none (direct mode or old Space)"}
+    r["worker_timing"] = (st.get("metrics_last") or {}).get("timing")
     r["leg3_full_path"] = {k: st.get(k) for k in ("pipeline_lag_ms", "recv_gap_ms", "refused", "session_end",
                                                   "close_code", "user_s", "model_s")}
     r["leg3_full_path"]["handshake_after_open_s"] = (round(st["t_handshake"] - st["t_open"], 2)
@@ -136,10 +130,32 @@ async def call_legs(a, cs):
     return r
 
 
+def breakdown(out):
+    """Sum-of-medians split of leg 3 (an approximation: medians do not add exactly). Every part is a duration measured
+    on ONE machine's clock; the residual is what no hop accounts for (client codec, HF ingress, measurement)."""
+    p = lambda d, *ks: (lambda v: v if isinstance(v, (int, float)) else None)(  # noqa: E731
+        __import__("functools").reduce(lambda x, k: (x or {}).get(k), ks, d))
+    total = p(out, "leg3_full_path", "pipeline_lag_ms", "p50")
+    parts = {
+        "A_client_space_rtt": p(out, "leg1_browser_to_space", "ws_echo_rtt_ms", "p50"),
+        "B_space_worker_net_rtt": p(out, "leg2_space_to_worker", "net_ms", "p50"),
+        "space_relay_up": p(out, "leg2_space_to_worker", "space_fwd_up_ms", "p50"),
+        "space_relay_down": p(out, "leg2_space_to_worker", "space_fwd_down_ms", "p50"),
+        "worker_in_wait": p(out, "worker_timing", "in_wait", "p50"),
+        "worker_residence": p(out, "worker_timing", "residence", "p50"),
+        "  of which step": p(out, "worker_timing", "step", "p50"),
+        "  of which queue": p(out, "worker_timing", "queue", "p50"),
+    }
+    known = sum(v for k, v in parts.items() if v is not None and not k.startswith("  "))
+    return {"pipeline_lag": total, **parts,
+            "residual": round(total - known, 1) if total is not None else None}
+
+
 async def baseline(a, cs):
     q = {"events": "1", "record_id": a.record_id, "pairing": a.pairing, "seed": str(a.seed)}
     st = await rc.stream_call(cs, a.baseline_url.rstrip("/") + "/api/chat?" + urllib.parse.urlencode(q), {},
-                              rc.tone_track(a.talk_s), "baseline", ssl_=rc.ssl_ctx(a))
+                              rc.tone_track(a.talk_s), "baseline", ssl_=rc.ssl_ctx(a),
+                              legacy_codec=a.legacy_codec)
     return {k: st.get(k) for k in ("pipeline_lag_ms", "recv_gap_ms", "refused", "step_p95_max")}
 
 
@@ -153,6 +169,7 @@ async def run(a):
                 out["leg1_browser_to_space"] = {"error": repr(e)}
         if a.call:
             out.update(await call_legs(a, cs))
+            out["breakdown_p50_ms"] = breakdown(out)
         else:
             out["note"] = "legs 2-3 skipped: add --call (wakes a billed GPU worker)"
         if a.baseline_url:
@@ -168,6 +185,8 @@ def main():
     ap.add_argument("--talk-s", type=float, default=30.0)
     ap.add_argument("--baseline-url", help="DEP1 pod server for comparison, e.g. wss://localhost:8998 (via ssh -L)")
     ap.add_argument("--out")
+    ap.add_argument("--legacy-codec", action="store_true",
+                    help="the pre-2026-10-17 codec handling (adds ~245 ms of client-side delay; for comparison only)")
     a = ap.parse_args()
     if a.direct and not a.call:
         a.call = True

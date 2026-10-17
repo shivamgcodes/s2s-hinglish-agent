@@ -62,6 +62,10 @@ class Upstream:
     async def diag(self, sess) -> dict:
         raise NotImplementedError
 
+    async def fetch_heard(self, sess):
+        """S2S 2026-10-17: the finished call's "what the model heard" WAV from the worker, or None."""
+        return None
+
     async def _ws_connect(self, url: str, query: dict, headers: dict):
         # The ClientSession has no total timeout (the relay socket lives for minutes); the open is bounded here.
         return await asyncio.wait_for(
@@ -228,6 +232,30 @@ class LBUpstream(Upstream):
         except (asyncio.TimeoutError, aiohttp.ClientError) as e:
             code = type(e).__name__
         return {"space_to_worker_ms": round(1000 * (time.time() - t0), 1), "status": code, "mode": self.mode}
+
+
+    async def fetch_heard(self, sess, tries: int = 10, wait_s: float = 0.5):
+        """S2S 2026-10-17: GET /session/heard on the call's worker (strict-pinned, fresh token). The worker builds the
+        WAV in end_session, which can finish a moment after the socket closes, so 404 is retried briefly."""
+        if not sess.worker_id and self.proxied:
+            return None
+        for _ in range(tries):
+            h = self.pinned(sess)
+            h["X-S2S-Token"] = self.token(sess)
+            try:
+                async with self.http.get(self.base + "/session/heard", headers=h, params=self.tq(h["X-S2S-Token"]),
+                                         timeout=aiohttp.ClientTimeout(total=60)) as r:
+                    if r.status == 200:
+                        return await r.read()
+                    code = r.status
+            except (asyncio.TimeoutError, aiohttp.ClientError) as e:
+                code = type(e).__name__
+            if code != 404:
+                log.warning("sid %s: heard fetch -> %s", sess.sid, code)
+                return None
+            await asyncio.sleep(wait_s)
+        log.warning("sid %s: heard fetch: still 404 after %d tries", sess.sid, tries)
+        return None
 
 
 # --------------------------------------------------------------------------------------------------- queue

@@ -2,7 +2,7 @@
 
 > **2026-10-06 (D-MONOREPO): one repo.** Everything below is now in the private GitHub monorepo
 > `shivamgcodes/s2s-hinglish-agent`. It replaces `s2s-worker` and `s2s-space`, and its README is the overview.
-> - `bash ops/export_monorepo.sh <checkout>` exports this folder into it;
+> - 2026-10-17 (D-REPO-ONLY): the repo is the only copy of the code; edit a clone of it directly (no export step);
 > - `ops/push_space.sh` stages and uploads the Space from it;
 > - `run_local.sh` and `run_all_cpu_tests.sh` are at the root.
 >

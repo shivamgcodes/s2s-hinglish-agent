@@ -1,6 +1,7 @@
 # docs/
 
-These are internal working documents, copied from the development folder. Paths in them such as `results/...`,
+These are internal working documents, first written in the development folder (retired 2026-10-17, D-REPO-ONLY:
+the repo is now the only copy, edited directly). Paths in them such as `results/...`,
 `ops/...` and `/root/...` refer to that folder and the dev boxes; since D-MONOREPO-LAYOUT (2026-10-07) `worker/`, `space/`,
 `client/`, `common/`, `ops/`, `tests/` are under `deploy/` in this repo. Not every one exists in this repo; for example,
 `results/` (raw test outputs) is not committed.
