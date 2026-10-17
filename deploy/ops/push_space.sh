@@ -52,7 +52,7 @@ if [ -z "$PY" ]; then
 fi
 [ -n "$PY" ] || { echo "no python with huggingface_hub" >&2; exit 1; }
 N=$(find "$DIR" -type f ! -path '*/.git/*' | wc -l)
-echo "space: $SPACE  dir: $DIR ($N files, $(du -sh --exclude=.git "$DIR" | cut -f1))  token: $([ -n "$TOKEN" ] && echo found || echo none)"
+echo "space: $SPACE  dir: $DIR ($N files, $( (du -sh --exclude=.git "$DIR" 2>/dev/null || du -sh -I .git "$DIR") | cut -f1))  token: $([ -n "$TOKEN" ] && echo found || echo none)"
 if [ $YES = 0 ]; then
   echo "DRY RUN: would create_repo($SPACE, repo_type=space, space_sdk=docker, exist_ok) and upload_folder($DIR, ignore .git, tests).  Add --yes."
   exit 0

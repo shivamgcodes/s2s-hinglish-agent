@@ -142,7 +142,7 @@ settings and, in a Static Space, to client JavaScript ([HF-OV] "Managing secrets
 | `S2S_SKIP_FETCH_ASSETS` | worker env | 0 | 1 = trust `S2S_ASSETS` / `S2S_ADAPTER` as they are (custom images) |
 | `S2S_INPUT_AGC`, `S2S_AGC_TARGET_DB` (-21), `S2S_AGC_MAX_GAIN_DB` (24), `S2S_AGC_GATE_DB` (-52), `S2S_AGC_NOISE_GAIN_DB` (6) | worker env | on | input AGC (demo D-AGC) |
 | `S2S_INPUT_GATE`, `S2S_GATE_OPEN_DB` (-55), `S2S_GATE_HANGOVER_FRAMES` (4) | worker env | on | noise gate (demo D-GATE). **Keep it on**: without it the model stays silent on a real mic |
-| `S2S_TURN_FILL` (ticker), `S2S_TURN_FILL_S` (1.0), `S2S_TURN_FILL_QUIET_MS` (400), `S2S_TURN_FILL_DB` (per mode; ticker -34) | worker env | ticker | turn filler defaults (demo D-FILL2); the Space toggle overrides the mode per call |
+| `S2S_TURN_FILL` (ticker), `S2S_TURN_FILL_S` (1.0), `S2S_TURN_FILL_QUIET_MS` (640; also the per-call "ticker" preset since 2026-10-17), `S2S_TURN_FILL_DB` (per mode; ticker -34) | worker env | ticker | turn filler defaults (demo D-FILL2); the Space toggle overrides the mode per call |
 | `S2S_TURN_FILL_JSON` | worker env | empty | optional JSON override file (demo turn_fill.json format) |
 | `S2S_RECORD_SESSIONS`, `S2S_SESSIONS_DIR` | worker env | 0, `$S2S_LOGS/sessions` | session recordings (debug) |
 | `S2S_TURN_FILL_DEFAULT` | Space variable | ticker | the toggle's initial mode (`ticker` or `off`) |

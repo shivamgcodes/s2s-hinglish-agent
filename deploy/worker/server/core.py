@@ -86,11 +86,13 @@ import json as _json
 import re as _re
 FILL_JSON = _os.environ.get("S2S_TURN_FILL_JSON", "")      # serverless: empty = off (demo: a fixed turn_fill.json)
 FILL_MODES_PUBLIC = ("ticker", "off")                          # the user-facing toggle (D-TOGGLE)
-TICKER_PRESET = {"mode": "ticker", "seconds": 1.0, "quiet_ms": 400, "db": -34.0}   # D-TOGGLE "ticker" = D-FILL2 pick
 RECORD_ON = _os.environ.get("S2S_RECORD_SESSIONS", "0") == "1"
 FILL_MODE = _os.environ.get("S2S_TURN_FILL", "ticker")        # D-FILL2 provisional pick; see FILL_MODE_DB keys, or off
 FILL_S = float(_os.environ.get("S2S_TURN_FILL_S", "1.0"))
-FILL_QUIET_MS = float(_os.environ.get("S2S_TURN_FILL_QUIET_MS", "400"))
+FILL_QUIET_MS = float(_os.environ.get("S2S_TURN_FILL_QUIET_MS", "640"))  # 2026-10-17 user: 400 -> 640 ms (8 frames; the
+#   ticker fired in the agent's own between-sentence pauses)
+TICKER_PRESET = {"mode": "ticker", "seconds": 1.0, "quiet_ms": FILL_QUIET_MS, "db": -34.0}  # D-TOGGLE "ticker" = D-FILL2
+#   pick; quiet_ms follows S2S_TURN_FILL_QUIET_MS (it was a fixed 400 that ignored the env var)
 FILL_LEVEL_DB_ENV = _os.environ.get("S2S_TURN_FILL_DB")        # None -> per-mode default
 FILL_MODE_DB = {"hmm": -24.0, "ticker": -34.0, "keyboard": -33.0, "pink": -32.0, "breath": -30.0, "noise": -24.0}
 _CHECK_RE = _re.compile(r"\b(ek minute|rukiye|ek second|dekh let[ai]|update kar det[ai]|just a sec|let me check|"

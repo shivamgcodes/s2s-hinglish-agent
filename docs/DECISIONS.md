@@ -1268,3 +1268,9 @@ had recording OFF by default (S2S_RECORD_SESSIONS). Decide: keep, env flag, or o
 - `deploy/ops/scan_secrets.sh` now works on macOS (BSD `du` has no `--exclude`; `wc -l` pads with spaces, which made
   the real-secret check report a problem with 0 hits). Before this fix the scan aborted silently on a Mac.
 - Run it by hand before each push: there is no secret-scan step in CI (`.github/workflows` has only build-worker.yml).
+
+## D-TICKER-WAIT 2026-10-17 (user: "change the ticker wait to 700ms ... round it to 640")
+- The ticker fired after 400 ms of agent silence, i.e. inside the agent's own between-sentence pauses (6 of 6 plays in
+  call LTYO5G18KFL3 started exactly 0.40 s after the agent went quiet; 4 were followed by the agent continuing).
+- `S2S_TURN_FILL_QUIET_MS` default 400 -> 640 (8 frames). The per-call "ticker" preset (TICKER_PRESET) had a fixed
+  400 that ignored the env var; it now follows S2S_TURN_FILL_QUIET_MS.
